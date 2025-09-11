@@ -14,19 +14,19 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({ activeTab, onTabCh
   ];
 
   return (
-    <div className="flex space-x-1 bg-gray-800 p-1 rounded-lg">
+    <div className="flex flex-col space-y-2">
       {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => onTabChange(tab.id)}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-md font-medium transition-colors ${
+          className={`flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 text-left ${
             activeTab === tab.id
-              ? 'bg-blue-600 text-white shadow-md'
-              : 'text-gray-300 hover:text-white hover:bg-gray-700'
+              ? 'bg-blue-600 text-white shadow-lg transform scale-105'
+              : 'text-gray-300 hover:text-white hover:bg-gray-700/70 hover:scale-105'
           }`}
         >
-          <span className="text-lg">{tab.icon}</span>
-          <span>{tab.label}</span>
+          <span className="text-xl">{tab.icon}</span>
+          <span className="font-medium">{tab.label}</span>
         </button>
       ))}
     </div>
