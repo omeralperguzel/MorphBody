@@ -77,6 +77,77 @@ export const Scene3D = forwardRef<Scene3DRef, Scene3DProps>(({
         zIndex: 0
       }}
     >
+      {/* Modern UI Overlay - Top */}
+      <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between pointer-events-none">
+        {/* 3D View Indicator */}
+        <div className="flex items-center space-x-3 pointer-events-auto">
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl shadow-black/20">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl shadow-lg shadow-cyan-500/25">
+                <span className="text-lg">🎮</span>
+              </div>
+              <div>
+                <div className="text-sm font-bold text-white">3D Interactive Mode</div>
+                <div className="text-xs text-white/60">Drag to rotate • Scroll to zoom</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="flex items-center space-x-2 pointer-events-auto">
+          <button
+            onClick={() => controlsRef.current?.reset()}
+            className="group bg-white/5 backdrop-blur-xl border border-white/10 hover:border-white/20 rounded-xl p-3 transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl hover:shadow-cyan-500/10"
+            title="Reset Camera (R)"
+          >
+            <div className="text-white/70 group-hover:text-white transition-colors duration-300">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* Modern UI Overlay - Bottom */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10 pointer-events-none">
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl shadow-black/20 pointer-events-auto">
+          <div className="flex items-center space-x-6 text-sm">
+            {/* Model Stats */}
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg shadow-lg shadow-emerald-500/25">
+                <span className="text-sm">📊</span>
+              </div>
+              <div>
+                <div className="text-white/90 font-medium">
+                  {measurements.height}cm • {measurements.weight}kg • {measurements.gender}
+                </div>
+                <div className="text-white/60 text-xs">
+                  Clothing: {selectedClothing.length} • Accessories: {selectedAccessories.length}
+                </div>
+              </div>
+            </div>
+
+            {/* Keyboard Shortcuts */}
+            <div className="hidden md:flex items-center space-x-4 text-xs text-white/60 border-l border-white/10 pl-6">
+              <div className="flex items-center space-x-2">
+                <kbd className="px-2 py-1 bg-white/10 rounded border border-white/20 font-mono">R</kbd>
+                <span>Reset</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <kbd className="px-2 py-1 bg-white/10 rounded border border-white/20 font-mono">Mouse</kbd>
+                <span>Orbit</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <kbd className="px-2 py-1 bg-white/10 rounded border border-white/20 font-mono">Wheel</kbd>
+                <span>Zoom</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <Canvas
         camera={{ 
           position: [3, 2, 5], 

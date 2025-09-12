@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import type { Accessory } from '../types';
 
 interface CosplayTabProps {
@@ -6,8 +6,130 @@ interface CosplayTabProps {
   onAccessoriesChange: (accessories: Accessory[]) => void;
 }
 
+const styles = {
+  container: {
+    minHeight: '400px',
+    padding: '24px',
+    background: 'rgba(10, 10, 20, 0.7)',
+    backdropFilter: 'blur(20px)',
+    borderRadius: '20px',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+  } as React.CSSProperties,
+
+  header: {
+    marginBottom: '32px',
+  } as React.CSSProperties,
+
+  title: {
+    fontSize: '28px',
+    fontWeight: 'bold',
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    backgroundClip: 'text',
+    textAlign: 'center' as const,
+    marginBottom: '16px',
+  } as React.CSSProperties,
+
+  description: {
+    textAlign: 'center' as const,
+    color: '#a0a0a0',
+    fontSize: '16px',
+    lineHeight: '1.6',
+  } as React.CSSProperties,
+
+  categoriesContainer: {
+    display: 'grid',
+    gap: '24px',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+  } as React.CSSProperties,
+
+  categorySection: {
+    background: 'rgba(20, 20, 40, 0.6)',
+    backdropFilter: 'blur(10px)',
+    borderRadius: '16px',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    padding: '20px',
+    transition: 'all 0.3s ease',
+  } as React.CSSProperties,
+
+  categoryHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: '16px',
+  } as React.CSSProperties,
+
+  categoryTitle: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    fontSize: '18px',
+    fontWeight: '600',
+    color: '#ffffff',
+  } as React.CSSProperties,
+
+  categoryIconContainer: {
+    width: '40px',
+    height: '40px',
+    borderRadius: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'rgba(255, 255, 255, 0.1)',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+  } as React.CSSProperties,
+
+  categoryCount: {
+    background: 'rgba(103, 126, 234, 0.2)',
+    color: '#667eea',
+    padding: '4px 12px',
+    borderRadius: '12px',
+    fontSize: '14px',
+    fontWeight: '500',
+    border: '1px solid rgba(103, 126, 234, 0.3)',
+  } as React.CSSProperties,
+
+  accessoryGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+    gap: '12px',
+  } as React.CSSProperties,
+
+  accessoryItem: {
+    background: 'rgba(30, 30, 60, 0.8)',
+    backdropFilter: 'blur(8px)',
+    borderRadius: '12px',
+    border: '1px solid rgba(255, 255, 255, 0.05)',
+    padding: '16px',
+    textAlign: 'center' as const,
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    position: 'relative' as const,
+  } as React.CSSProperties,
+
+  accessoryItemHover: {
+    transform: 'translateY(-2px)',
+    boxShadow: '0 8px 25px rgba(103, 126, 234, 0.15)',
+    border: '1px solid rgba(103, 126, 234, 0.3)',
+  } as React.CSSProperties,
+
+  accessoryIcon: {
+    fontSize: '32px',
+    marginBottom: '8px',
+    display: 'block',
+  } as React.CSSProperties,
+
+  accessoryName: {
+    color: '#ffffff',
+    fontSize: '14px',
+    fontWeight: '500',
+    lineHeight: '1.3',
+  } as React.CSSProperties,
+};
+
 const availableAccessories: Accessory[] = [
-  // Masks
   {
     id: 'cat_mask',
     name: 'Cat Mask',
@@ -22,36 +144,37 @@ const availableAccessories: Accessory[] = [
     category: 'masks',
     modelPath: '/assets/accessories/masks/fox_mask.glb',
   },
-  
-  // Wigs
   {
-    id: 'long_hair',
+    id: 'wolf_mask',
+    name: 'Wolf Mask',
+    type: 'mask',
+    category: 'masks',
+    modelPath: '/assets/accessories/masks/wolf_mask.glb',
+  },
+  {
+    id: 'long_wig',
     name: 'Long Hair Wig',
     type: 'wig',
     category: 'wigs',
-    modelPath: '/assets/accessories/wigs/long_hair.glb',
+    modelPath: '/assets/accessories/wigs/long_wig.glb',
   },
   {
-    id: 'short_hair',
+    id: 'short_wig',
     name: 'Short Hair Wig',
     type: 'wig',
     category: 'wigs',
-    modelPath: '/assets/accessories/wigs/short_hair.glb',
+    modelPath: '/assets/accessories/wigs/short_wig.glb',
   },
-  
-  // Corsets
   {
     id: 'basic_corset',
-    name: 'Waist Corset',
+    name: 'Basic Corset',
     type: 'corset',
     category: 'corsets',
     modelPath: '/assets/accessories/corsets/basic_corset.glb',
     bodyModifications: {
-      waistScale: 0.8,
+      waistScale: 0.7,
     },
   },
-  
-  // Padding
   {
     id: 'chest_padding',
     name: 'Chest Padding',
@@ -59,197 +182,128 @@ const availableAccessories: Accessory[] = [
     category: 'padding',
     modelPath: '/assets/accessories/padding/chest_padding.glb',
     bodyModifications: {
-      chestScale: 1.3,
-    },
-  },
-  {
-    id: 'hip_padding',
-    name: 'Hip Padding',
-    type: 'padding',
-    category: 'padding',
-    modelPath: '/assets/accessories/padding/hip_padding.glb',
-    bodyModifications: {
-      hipScale: 1.2,
+      chestScale: 1.5,
     },
   },
 ];
 
 export const CosplayTab: React.FC<CosplayTabProps> = ({ selectedAccessories, onAccessoriesChange }) => {
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+
+  const groupedAccessories = useMemo(() => {
+    return availableAccessories.reduce((acc, accessory) => {
+      if (!acc[accessory.category]) {
+        acc[accessory.category] = [];
+      }
+      acc[accessory.category].push(accessory);
+      return acc;
+    }, {} as Record<string, Accessory[]>);
+  }, []);
+
+  const getCategoryIcon = (category: string): string => {
+    const icons: Record<string, string> = {
+      masks: '🎭',
+      wigs: '💇',
+      corsets: '👗',
+      padding: '🛡️'
+    };
+    return icons[category] || '✨';
+  };
+
+  const getCategoryGradient = (category: string): string => {
+    const gradients: Record<string, string> = {
+      masks: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      wigs: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+      corsets: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+      padding: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
+    };
+    return gradients[category] || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+  };
+
   const toggleAccessory = (accessory: Accessory) => {
-    const isSelected = selectedAccessories.some((a) => a.id === accessory.id);
+    const isSelected = selectedAccessories.some(item => item.id === accessory.id);
     
     if (isSelected) {
-      // Remove the accessory
-      onAccessoriesChange(selectedAccessories.filter((a) => a.id !== accessory.id));
+      onAccessoriesChange(selectedAccessories.filter(item => item.id !== accessory.id));
     } else {
-      // For certain types, remove others of the same type first
-      if (accessory.type === 'mask' || accessory.type === 'wig') {
-        const filtered = selectedAccessories.filter((a) => a.type !== accessory.type);
-        onAccessoriesChange([...filtered, accessory]);
-      } else {
-        // For padding and corsets, allow multiple
-        onAccessoriesChange([...selectedAccessories, accessory]);
-      }
+      onAccessoriesChange([...selectedAccessories, accessory]);
     }
   };
 
-  const removeAllAccessories = () => {
-    onAccessoriesChange([]);
-  };
-
-  const groupedAccessories = availableAccessories.reduce((acc, item) => {
-    if (!acc[item.category]) {
-      acc[item.category] = [];
+  const getAccessoryItemStyle = (accessoryId: string) => {
+    const isSelected = selectedAccessories.some(item => item.id === accessoryId);
+    const isHovered = hoveredItem === accessoryId;
+    
+    let itemStyle = { ...styles.accessoryItem };
+    
+    if (isSelected) {
+      itemStyle = {
+        ...itemStyle,
+        background: 'rgba(103, 126, 234, 0.2)',
+        border: '2px solid #667eea',
+        boxShadow: '0 0 20px rgba(103, 126, 234, 0.3)',
+      };
     }
-    acc[item.category].push(item);
-    return acc;
-  }, {} as Record<string, Accessory[]>);
+    
+    if (isHovered) {
+      itemStyle = {
+        ...itemStyle,
+        ...styles.accessoryItemHover,
+      };
+    }
+    
+    return itemStyle;
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-white">Cosplay & Kigurumi Mode</h3>
-        <button
-          onClick={removeAllAccessories}
-          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm font-medium transition-colors"
-        >
-          Remove All
-        </button>
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <h2 style={styles.title}>Cosplay Accessories</h2>
+        <p style={styles.description}>
+          Transform your character with masks, wigs, corsets, and body modifications. 
+          Mix and match to create unique cosplay combinations.
+        </p>
       </div>
 
-      {/* Selected accessories summary */}
-      {selectedAccessories.length > 0 && (
-        <div className="bg-gray-800 p-4 rounded-lg">
-          <h4 className="text-sm font-medium text-gray-300 mb-2">Active Accessories:</h4>
-          <div className="space-y-2">
-            {selectedAccessories.map((accessory) => (
-              <div key={accessory.id} className="flex items-center justify-between">
-                <span className="px-3 py-1 bg-purple-600 text-white rounded-full text-sm">
-                  {accessory.name}
-                </span>
-                {accessory.bodyModifications && (
-                  <span className="text-xs text-gray-400">
-                    Body modifications applied
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Accessory categories */}
-      <div className="grid grid-cols-1 gap-6">
+      <div style={styles.categoriesContainer}>
         {Object.entries(groupedAccessories).map(([category, items]) => (
-          <div key={category} className="space-y-3">
-            <h4 className="text-md font-semibold text-white capitalize flex items-center">
-              {getCategoryIcon(category)} {category}
-            </h4>
+          <div key={category} style={styles.categorySection}>
+            <div style={styles.categoryHeader}>
+              <div style={styles.categoryTitle}>
+                <div style={{
+                  ...styles.categoryIconContainer,
+                  background: getCategoryGradient(category),
+                }}>
+                  <span style={{ fontSize: '20px' }}>{getCategoryIcon(category)}</span>
+                </div>
+                <span style={{ textTransform: 'capitalize' }}>{category}</span>
+              </div>
+              <div style={styles.categoryCount}>
+                {items.length} items
+              </div>
+            </div>
             
-            <div className="grid grid-cols-2 gap-3">
-              {items.map((accessory) => {
-                const isSelected = selectedAccessories.some((a) => a.id === accessory.id);
-                
-                return (
-                  <button
-                    key={accessory.id}
-                    onClick={() => toggleAccessory(accessory)}
-                    className={`p-4 rounded-lg border-2 transition-all ${
-                      isSelected
-                        ? 'border-purple-500 bg-purple-600/20 text-white'
-                        : 'border-gray-600 bg-gray-800 text-gray-300 hover:border-gray-500 hover:bg-gray-700'
-                    }`}
-                  >
-                    <div className="text-center">
-                      <div className="text-3xl mb-2">{getAccessoryIcon(accessory.type)}</div>
-                      <div className="font-medium text-sm">{accessory.name}</div>
-                      {accessory.bodyModifications && (
-                        <div className="text-xs text-gray-400 mt-1">
-                          Modifies body shape
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
+            <div style={styles.accessoryGrid}>
+              {items.map(accessory => (
+                <div
+                  key={accessory.id}
+                  style={getAccessoryItemStyle(accessory.id)}
+                  onClick={() => toggleAccessory(accessory)}
+                  onMouseEnter={() => setHoveredItem(accessory.id)}
+                  onMouseLeave={() => setHoveredItem(null)}
+                >
+                  <span style={styles.accessoryIcon}>
+                    {getCategoryIcon(accessory.category)}
+                  </span>
+                  <div style={styles.accessoryName}>
+                    {accessory.name}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         ))}
       </div>
-
-      {/* Body modification preview */}
-      {selectedAccessories.some((a) => a.bodyModifications) && (
-        <div className="bg-gray-800 p-4 rounded-lg">
-          <h4 className="text-sm font-medium text-gray-300 mb-3">Body Modifications:</h4>
-          <div className="grid grid-cols-3 gap-4 text-sm">
-            {selectedAccessories
-              .filter((a) => a.bodyModifications)
-              .map((accessory) => (
-                <div key={accessory.id} className="text-center">
-                  <div className="text-purple-400 font-medium">{accessory.name}</div>
-                  {accessory.bodyModifications?.waistScale && (
-                    <div className="text-gray-400">
-                      Waist: {Math.round((accessory.bodyModifications.waistScale - 1) * 100)}%
-                    </div>
-                  )}
-                  {accessory.bodyModifications?.chestScale && (
-                    <div className="text-gray-400">
-                      Chest: +{Math.round((accessory.bodyModifications.chestScale - 1) * 100)}%
-                    </div>
-                  )}
-                  {accessory.bodyModifications?.hipScale && (
-                    <div className="text-gray-400">
-                      Hips: +{Math.round((accessory.bodyModifications.hipScale - 1) * 100)}%
-                    </div>
-                  )}
-                </div>
-              ))}
-          </div>
-        </div>
-      )}
-
-      {/* Instructions */}
-      <div className="bg-gray-800 p-4 rounded-lg">
-        <h4 className="text-sm font-medium text-gray-300 mb-2">Cosplay Mode:</h4>
-        <ul className="text-sm text-gray-400 space-y-1">
-          <li>• Mix and match accessories to create unique looks</li>
-          <li>• Only one mask and one wig can be selected at a time</li>
-          <li>• Corsets and padding modify body proportions</li>
-          <li>• Combine with clothing for complete cosplay outfits</li>
-          <li>• All models are placeholders - replace with actual GLTF files</li>
-        </ul>
-      </div>
     </div>
   );
 };
-
-function getCategoryIcon(category: string): string {
-  switch (category) {
-    case 'masks':
-      return '🎭';
-    case 'wigs':
-      return '💇';
-    case 'corsets':
-      return '👗';
-    case 'padding':
-      return '🎈';
-    default:
-      return '✨';
-  }
-}
-
-function getAccessoryIcon(type: Accessory['type']): string {
-  switch (type) {
-    case 'mask':
-      return '🎭';
-    case 'wig':
-      return '💇';
-    case 'corset':
-      return '👗';
-    case 'padding':
-      return '🎈';
-    default:
-      return '✨';
-  }
-}

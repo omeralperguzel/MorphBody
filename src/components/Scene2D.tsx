@@ -488,22 +488,80 @@ export const Scene2D: React.FC<Scene2DProps> = ({ measurements, measurementMode 
         zIndex: 0
       }}
     >
-      {/* View Navigation */}
-      <div className="absolute top-4 left-4 z-10 bg-gray-800/95 backdrop-blur-md rounded-lg shadow-xl border border-gray-600/30 p-2">
-        <div className="flex space-x-1">
-          {(['front', 'right', 'left', 'back'] as ViewType[]).map((view) => (
+      {/* Modern UI Overlay - Top */}
+      <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between pointer-events-none">
+        {/* 2D Mode Indicator & View Navigation */}
+        <div className="flex items-center space-x-3 pointer-events-auto">
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl shadow-black/20">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl shadow-lg shadow-purple-500/25">
+                <span className="text-lg">📐</span>
+              </div>
+              <div>
+                <div className="text-sm font-bold text-white">2D Blueprint Mode</div>
+                <div className="text-xs text-white/60">Drag to pan • Scroll to zoom</div>
+              </div>
+            </div>
+          </div>
+
+          {/* View Navigation */}
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-2 shadow-2xl shadow-black/20">
+            <div className="flex space-x-1">
+              {(['front', 'right', 'left', 'back'] as ViewType[]).map((view) => (
+                <button
+                  key={view}
+                  onClick={() => setCurrentView(view)}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                    currentView === view
+                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/25 scale-105'
+                      : 'text-white/70 hover:text-white hover:bg-white/10 hover:scale-102'
+                  }`}
+                >
+                  {view.charAt(0).toUpperCase() + view.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="flex items-center space-x-2 pointer-events-auto">
+          <button
+            onClick={resetView}
+            className="group bg-white/5 backdrop-blur-xl border border-white/10 hover:border-white/20 rounded-xl p-3 transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl hover:shadow-purple-500/10"
+            title="Reset View (R)"
+          >
+            <div className="text-white/70 group-hover:text-white transition-colors duration-300">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </div>
+          </button>
+
+          {/* Zoom Controls */}
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-2 shadow-lg flex items-center space-x-1">
             <button
-              key={view}
-              onClick={() => setCurrentView(view)}
-              className={`px-3 py-1 rounded text-sm font-medium transition-all duration-200 ${
-                currentView === view
-                  ? 'bg-purple-600 text-white'
-                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-              }`}
+              onClick={() => setZoom(prev => Math.max(0.2, prev * 0.8))}
+              className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300"
+              title="Zoom Out"
             >
-              {view.charAt(0).toUpperCase() + view.slice(1)}
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+              </svg>
             </button>
-          ))}
+            <div className="text-xs text-white/60 font-mono min-w-12 text-center">
+              {Math.round(zoom * 100)}%
+            </div>
+            <button
+              onClick={() => setZoom(prev => Math.min(3, prev * 1.25))}
+              className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300"
+              title="Zoom In"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -522,13 +580,49 @@ export const Scene2D: React.FC<Scene2DProps> = ({ measurements, measurementMode 
         onWheel={handleWheel}
       />
 
-      {/* Current View Indicator */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10 bg-gray-800/95 backdrop-blur-md rounded-lg border border-gray-600/30 px-4 py-2">
-        <div className="text-sm font-medium text-white">
-          <span className="text-gray-400">Current View:</span>
-          <span className="ml-2 text-purple-400">{currentView.charAt(0).toUpperCase() + currentView.slice(1)}</span>
-          <span className="ml-3 text-gray-400">|</span>
-          <span className="ml-3 text-blue-400">{measurements.gender.charAt(0).toUpperCase() + measurements.gender.slice(1)}</span>
+      {/* Modern UI Overlay - Bottom */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10 pointer-events-none">
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl shadow-black/20 pointer-events-auto">
+          <div className="flex items-center space-x-6 text-sm">
+            {/* Current View & Model Stats */}
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg shadow-lg shadow-purple-500/25">
+                <span className="text-sm">👁️</span>
+              </div>
+              <div>
+                <div className="text-white/90 font-medium flex items-center space-x-3">
+                  <span className="text-purple-400">{currentView.charAt(0).toUpperCase() + currentView.slice(1)} View</span>
+                  <span className="text-white/40">•</span>
+                  <span>{measurements.height}cm • {measurements.weight}kg</span>
+                  <span className="text-white/40">•</span>
+                  <span className="capitalize text-blue-400">{measurements.gender}</span>
+                </div>
+                <div className="text-white/60 text-xs">
+                  Zoom: {Math.round(zoom * 100)}% • Pan: ({Math.round(panOffset.x)}, {Math.round(panOffset.y)})
+                </div>
+              </div>
+            </div>
+
+            {/* Keyboard Shortcuts */}
+            <div className="hidden lg:flex items-center space-x-4 text-xs text-white/60 border-l border-white/10 pl-6">
+              <div className="flex items-center space-x-2">
+                <kbd className="px-2 py-1 bg-white/10 rounded border border-white/20 font-mono">1-4</kbd>
+                <span>Views</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <kbd className="px-2 py-1 bg-white/10 rounded border border-white/20 font-mono">R</kbd>
+                <span>Reset</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <kbd className="px-2 py-1 bg-white/10 rounded border border-white/20 font-mono">Drag</kbd>
+                <span>Pan</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <kbd className="px-2 py-1 bg-white/10 rounded border border-white/20 font-mono">Wheel</kbd>
+                <span>Zoom</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
