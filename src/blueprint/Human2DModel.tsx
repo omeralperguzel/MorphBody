@@ -30,6 +30,12 @@ export type Human2DModelProps = {
   gridMajorEvery?: number;
   showGuides?: boolean; // show landmarks/labels for debugging
   className?: string;
+  zoom?: number; // zoom level (default 1.0)
+  pan?: { x: number; y: number }; // pan offset in pixels (default {x:0, y:0})
+  onWheel?: (event: React.WheelEvent) => void; // zoom handler
+  onMouseDown?: (event: React.MouseEvent) => void; // pan start handler
+  onMouseMove?: (event: React.MouseEvent) => void; // pan move handler
+  onMouseUp?: () => void; // pan end handler
 };
 
 type Measurements = Human2DModelProps['measurements'];
@@ -122,7 +128,7 @@ const rotatePoint = (x: number, y: number, angleDeg: number): {x: number; y: num
 
 // Default pose parameters
 const DEFAULT_POSE: Required<Pose> = {
-  shoulderAbductionDeg: 15,
+  shoulderAbductionDeg: 45,
   elbowFlexionDeg: 5,
   wristFlexionDeg: 0,
   hipAbductionDeg: 5,
@@ -146,9 +152,9 @@ function armLandmarks(view: View, side: 'L' | 'R', m: Measurements, g: Gender, a
   
   // Half-widths
   const shoulderHW = chest * F.shoulderRatio;
-  const bicepsHW = Math.max(wrist * 2.0, chest * 0.55);
+  const bicepsHW = Math.max(wrist * 1.4, chest * 0.35);  // Reduced from wrist * 2.0
   const elbowHW = lerp(bicepsHW, wrist, 0.65);
-  const forearmHW = Math.max(wrist * 1.6, bicepsHW * 0.75);
+  const forearmHW = Math.max(wrist * 1.2, bicepsHW * 0.65);  // Reduced multipliers
   const wristHW = wrist;
   const palmHW = wristHW * 1.15;
   
@@ -159,14 +165,14 @@ function armLandmarks(view: View, side: 'L' | 'R', m: Measurements, g: Gender, a
   const acromionBase = { x: sideSign * shoulderHW, y: A.shoulderY };
   
   // Apply shoulder abduction
-  const abductionOffset = rotatePoint(0, -upperArmLen, angles.shoulderAbductionDeg * sideSign);
+  const abductionOffset = rotatePoint(0, upperArmLen, angles.shoulderAbductionDeg * sideSign);
   const elbowBase = {
     x: acromionBase.x + abductionOffset.x,
     y: acromionBase.y + abductionOffset.y
   };
   
   // Apply elbow flexion
-  const flexionOffset = rotatePoint(0, -forearmLen, angles.elbowFlexionDeg * sideSign);
+  const flexionOffset = rotatePoint(0, forearmLen, angles.elbowFlexionDeg * sideSign);
   const wristBase = {
     x: elbowBase.x + flexionOffset.x,
     y: elbowBase.y + flexionOffset.y
@@ -199,6 +205,11 @@ function armLandmarks(view: View, side: 'L' | 'R', m: Measurements, g: Gender, a
     y: wristBase.y + handUnit.y * m.palmLength
   };
   
+  const palm = {
+    x: wristBase.x + handUnit.x * (m.palmLength * 0.6),
+    y: wristBase.y + handUnit.y * (m.palmLength * 0.6)
+  };
+  
   const fingerTip = {
     x: palmTip.x + handUnit.x * m.middleFingerLength,
     y: palmTip.y + handUnit.y * m.middleFingerLength
@@ -211,7 +222,13 @@ function armLandmarks(view: View, side: 'L' | 'R', m: Measurements, g: Gender, a
     [`forearmMax${side}`]: forearmMax,
     [`wrist${side}`]: wristBase,
     [`palmTip${side}`]: palmTip,
+    [`palm${side}`]: palm,
     [`fingerTip${side}`]: fingerTip,
+    // generic aliases for debug/overlays
+    [`biceps${side}`]: bicepsMax,
+    [`forearm${side}`]: forearmMax,
+    // tolerate legacy typo:
+    [`wristle${side}`]: wristBase,
     // Width data for path building
     [`shoulderHW${side}`]: { x: shoulderHW, y: 0 },
     [`bicepsHW${side}`]: { x: bicepsHW, y: 0 },
@@ -244,7 +261,7 @@ function legLandmarks(view: View, side: 'L' | 'R', m: Measurements, g: Gender, a
   const hipHW = hips;
   const thighHW = thigh;
   const kneeHW = lerp(thighHW, ankle, 0.7);
-  const calfHW = Math.max(thighHW * 0.80, ankle * 1.8);
+  const calfHW = Math.max(thighHW * 0.60, ankle * 1.4);  // Reduced from 0.80 and 1.8
   const ankleHW = ankle;
   
   // Side multiplier for left/right
@@ -290,6 +307,10 @@ function legLandmarks(view: View, side: 'L' | 'R', m: Measurements, g: Gender, a
     [`ankle${side}`]: ankleBase,
     [`heel${side}`]: heel,
     [`toeTip${side}`]: toeTip,
+    // generic aliases
+    [`hip${side}`]: hipJointBase,
+    [`thigh${side}`]: thighMax,
+    [`calf${side}`]: calfMax,
     // Width data for path building
     [`hipHW${side}`]: { x: hipHW, y: 0 },
     [`thighHW${side}`]: { x: thighHW, y: 0 },
@@ -320,11 +341,11 @@ function landmarksFront(m: Measurements, g: Gender): Landmarks {
   
   // Derived widths
   const shoulder = chest * F.shoulderRatio;
-  const biceps = wrist * 2.0;
-  const forearm = wrist * 1.6;
+  const biceps = wrist * 1.4;  // Reduced from 2.0 to match arm reduction
+  const forearm = wrist * 1.2;  // Reduced from 1.6 to match arm reduction
   const elbow = (biceps + wrist) * 0.6;
   const knee = (thigh + ankle) * 0.7;
-  const calf = ankle * 1.8;
+  const calf = ankle * 1.4;  // Reduced from 1.8 to match leg reduction
   
   // Arm/leg segment lengths
   const upperArm = m.armLength * 0.55; // shoulder to elbow
@@ -473,8 +494,6 @@ function landmarksSide(m: Measurements, g: Gender): Landmarks {
 
 // Build parametric arm SVG path
 function buildPathParametricArm(L: Landmarks, _view: View, side: 'L' | 'R'): string {
-  const sideSign = side === 'L' ? -1 : 1;
-  
   // Get landmarks
   const acromion = L[`acromion${side}`];
   const bicepsMax = L[`bicepsMax${side}`];
@@ -484,42 +503,23 @@ function buildPathParametricArm(L: Landmarks, _view: View, side: 'L' | 'R'): str
   const palmTip = L[`palmTip${side}`];
   const fingerTip = L[`fingerTip${side}`];
   
-  // Get half-widths
-  const shoulderHW = L[`shoulderHW${side}`].x;
-  const bicepsHW = L[`bicepsHW${side}`].x;
-  const elbowHW = L[`elbowHW${side}`].x;
-  const forearmHW = L[`forearmHW${side}`].x;
-  const wristHW = L[`wristHW${side}`].x;
-  const palmHW = L[`palmHW${side}`].x;
-  
-  // Calculate perpendicular offsets for each segment
-  const shoulderOffset = sideSign * shoulderHW;
-  const bicepsOffset = sideSign * bicepsHW;
-  const elbowOffset = sideSign * elbowHW;
-  const forearmOffset = sideSign * forearmHW;
-  const wristOffset = sideSign * wristHW;
-  const palmOffset = sideSign * palmHW;
-  
-  // Build the arm outline path
+  // Build the arm outline path - use landmark positions directly
   return `
-    M ${acromion.x + shoulderOffset},${acromion.y}
-    Q ${bicepsMax.x + bicepsOffset},${bicepsMax.y} ${elbow.x + elbowOffset},${elbow.y}
-    Q ${forearmMax.x + forearmOffset},${forearmMax.y} ${wrist.x + wristOffset},${wrist.y}
-    L ${palmTip.x + palmOffset},${palmTip.y}
-    L ${fingerTip.x + palmOffset * 0.8},${fingerTip.y}
-    L ${fingerTip.x - palmOffset * 0.8},${fingerTip.y}
-    L ${palmTip.x - palmOffset},${palmTip.y}
-    L ${wrist.x - wristOffset},${wrist.y}
-    Q ${forearmMax.x - forearmOffset},${forearmMax.y} ${elbow.x - elbowOffset},${elbow.y}
-    Q ${bicepsMax.x - bicepsOffset},${bicepsMax.y} ${acromion.x - shoulderOffset},${acromion.y}
+    M ${acromion.x},${acromion.y}
+    Q ${bicepsMax.x},${bicepsMax.y} ${elbow.x},${elbow.y}
+    Q ${forearmMax.x},${forearmMax.y} ${wrist.x},${wrist.y}
+    L ${palmTip.x},${palmTip.y}
+    L ${fingerTip.x},${fingerTip.y}
+    L ${palmTip.x},${palmTip.y}
+    L ${wrist.x},${wrist.y}
+    Q ${forearmMax.x},${forearmMax.y} ${elbow.x},${elbow.y}
+    Q ${bicepsMax.x},${bicepsMax.y} ${acromion.x},${acromion.y}
     Z
   `;
 }
 
 // Build parametric leg SVG path
 function buildPathParametricLeg(L: Landmarks, _view: View, side: 'L' | 'R'): string {
-  const sideSign = side === 'L' ? -1 : 1;
-  
   // Get landmarks
   const hipJoint = L[`hipJoint${side}`];
   const thighMax = L[`thighMax${side}`];
@@ -529,32 +529,17 @@ function buildPathParametricLeg(L: Landmarks, _view: View, side: 'L' | 'R'): str
   const heel = L[`heel${side}`];
   const toeTip = L[`toeTip${side}`];
   
-  // Get half-widths
-  const hipHW = L[`hipHW${side}`].x;
-  const thighHW = L[`thighHW${side}`].x;
-  const kneeHW = L[`kneeHW${side}`].x;
-  const calfHW = L[`calfHW${side}`].x;
-  const ankleHW = L[`ankleHW${side}`].x;
-  
-  // Calculate perpendicular offsets for each segment
-  const hipOffset = sideSign * hipHW;
-  const thighOffset = sideSign * thighHW;
-  const kneeOffset = sideSign * kneeHW;
-  const calfOffset = sideSign * calfHW;
-  const ankleOffset = sideSign * ankleHW;
-  
-  // Build the leg outline path
+  // Build the leg outline path - use landmark positions directly
   return `
-    M ${hipJoint.x + hipOffset},${hipJoint.y}
-    Q ${thighMax.x + thighOffset},${thighMax.y} ${knee.x + kneeOffset},${knee.y}
-    Q ${calfMax.x + calfOffset},${calfMax.y} ${ankle.x + ankleOffset},${ankle.y}
-    L ${heel.x + ankleOffset},${heel.y}
-    L ${toeTip.x + ankleOffset * 0.3},${toeTip.y}
-    L ${toeTip.x - ankleOffset * 0.3},${toeTip.y}
-    L ${heel.x - ankleOffset},${heel.y}
-    L ${ankle.x - ankleOffset},${ankle.y}
-    Q ${calfMax.x - calfOffset},${calfMax.y} ${knee.x - kneeOffset},${knee.y}
-    Q ${thighMax.x - thighOffset},${thighMax.y} ${hipJoint.x - hipOffset},${hipJoint.y}
+    M ${hipJoint.x},${hipJoint.y}
+    Q ${thighMax.x},${thighMax.y} ${knee.x},${knee.y}
+    Q ${calfMax.x},${calfMax.y} ${ankle.x},${ankle.y}
+    L ${heel.x},${heel.y}
+    L ${toeTip.x},${toeTip.y}
+    L ${heel.x},${heel.y}
+    L ${ankle.x},${ankle.y}
+    Q ${calfMax.x},${calfMax.y} ${knee.x},${knee.y}
+    Q ${thighMax.x},${thighMax.y} ${hipJoint.x},${hipJoint.y}
     Z
   `;
 }
@@ -670,7 +655,8 @@ const renderGrid = (
   height: number,
   pixelsPerCm: number,
   gridStepCm: number,
-  gridMajorEvery: number
+  gridMajorEvery: number,
+  zoom: number
 ): React.ReactElement => {
   const lines: React.ReactElement[] = [];
   const stepPx = gridStepCm * pixelsPerCm;
@@ -687,7 +673,7 @@ const renderGrid = (
         x2={x}
         y2={height}
         stroke={isMajor ? "rgba(255, 255, 255, 0.3)" : "rgba(255, 255, 255, 0.1)"}
-        strokeWidth={isMajor ? 1 : 0.5}
+        strokeWidth={(isMajor ? 1 : 0.5) / zoom}
       />
     );
   }
@@ -703,7 +689,7 @@ const renderGrid = (
         x2={width}
         y2={y}
         stroke={isMajor ? "rgba(255, 255, 255, 0.3)" : "rgba(255, 255, 255, 0.1)"}
-        strokeWidth={isMajor ? 1 : 0.5}
+        strokeWidth={(isMajor ? 1 : 0.5) / zoom}
       />
     );
   }
@@ -712,7 +698,7 @@ const renderGrid = (
 };
 
 // Render debug guides
-const renderGuides = (landmarks: Landmarks): React.ReactElement => {
+const renderGuides = (landmarks: Landmarks, zoom: number): React.ReactElement => {
   return (
     <g>
       {Object.entries(landmarks).map(([key, point]) => (
@@ -721,13 +707,13 @@ const renderGuides = (landmarks: Landmarks): React.ReactElement => {
             <circle
               cx={point.x}
               cy={point.y}
-              r={2}
+              r={2 / zoom} // Scale circle size inversely with zoom
               fill="rgba(255, 0, 0, 0.7)"
             />
             <text
-              x={point.x + 3}
-              y={point.y - 3}
-              fontSize="8"
+              x={point.x + 3 / zoom}
+              y={point.y - 3 / zoom}
+              fontSize={8 / zoom} // Scale text size inversely with zoom
               fill="rgba(255, 255, 255, 0.8)"
             >
               {key}
@@ -752,6 +738,12 @@ const Human2DModel: React.FC<Human2DModelProps> = ({
   gridMajorEvery = 2,
   showGuides = false,
   className = '',
+  zoom = 1.0,
+  pan = { x: 0, y: 0 },
+  onWheel,
+  onMouseDown,
+  onMouseMove,
+  onMouseUp,
 }) => {
   // Merge pose with defaults
   const fullPose: Required<Pose> = { ...DEFAULT_POSE, ...pose };
@@ -810,6 +802,12 @@ const Human2DModel: React.FC<Human2DModelProps> = ({
   const leftLegPath = view === 'front' || view === 'back' ? buildPathParametricLeg(offsetLandmarks, view, 'L') : '';
   const rightLegPath = buildPathParametricLeg(offsetLandmarks, view, 'R');
 
+  // Calculate the cursor style based on interaction state
+  const getCursor = () => {
+    if (!onMouseDown) return 'default';
+    return 'grab';
+  };
+
   // Gender-specific colors with better visibility
   const colors = {
     male: { fill: 'rgba(59, 130, 246, 0.8)', stroke: 'rgba(59, 130, 246, 1.0)' },
@@ -822,19 +820,28 @@ const Human2DModel: React.FC<Human2DModelProps> = ({
       width={width} 
       height={height} 
       className={className}
-      style={{ background: 'transparent' }}
+      style={{ 
+        background: 'transparent',
+        cursor: getCursor()
+      }}
+      onWheel={onWheel}
+      onMouseDown={onMouseDown}
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}
+      onMouseLeave={onMouseUp} // End drag if mouse leaves SVG
     >
-      {/* Grid background */}
-      {showGrid && renderGrid(width, height, pixelsPerCm, gridStepCm, gridMajorEvery)}
-      
-      {/* Human body segments */}
-      <g>
+      {/* Human body segments with zoom and pan transform - everything transforms together */}
+      <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
+        {/* Grid background - now transforms with the model */}
+        {showGrid && renderGrid(width, height, pixelsPerCm, gridStepCm, gridMajorEvery, zoom)}
+        
+        {/* Human body segments */}
         {/* Head */}
         <path
           d={headPath}
           fill={colors.fill}
           stroke={colors.stroke}
-          strokeWidth={1.5}
+          strokeWidth={1.5 / zoom} // Scale stroke width inversely to maintain visual consistency
           strokeLinejoin="round"
           strokeLinecap="round"
         />
@@ -844,7 +851,7 @@ const Human2DModel: React.FC<Human2DModelProps> = ({
           d={neckPath}
           fill={colors.fill}
           stroke={colors.stroke}
-          strokeWidth={1.5}
+          strokeWidth={1.5 / zoom}
           strokeLinejoin="round"
           strokeLinecap="round"
         />
@@ -854,7 +861,7 @@ const Human2DModel: React.FC<Human2DModelProps> = ({
           d={torsoPath}
           fill={colors.fill}
           stroke={colors.stroke}
-          strokeWidth={1.5}
+          strokeWidth={1.5 / zoom}
           strokeLinejoin="round"
           strokeLinecap="round"
         />
@@ -864,7 +871,7 @@ const Human2DModel: React.FC<Human2DModelProps> = ({
           d={pelvisPath}
           fill={colors.fill}
           stroke={colors.stroke}
-          strokeWidth={1.5}
+          strokeWidth={1.5 / zoom}
           strokeLinejoin="round"
           strokeLinecap="round"
         />
@@ -875,7 +882,7 @@ const Human2DModel: React.FC<Human2DModelProps> = ({
             d={leftArmPath}
             fill={colors.fill}
             stroke={colors.stroke}
-            strokeWidth={1.5}
+            strokeWidth={1.5 / zoom}
             strokeLinejoin="round"
             strokeLinecap="round"
           />
@@ -884,7 +891,7 @@ const Human2DModel: React.FC<Human2DModelProps> = ({
           d={rightArmPath}
           fill={colors.fill}
           stroke={colors.stroke}
-          strokeWidth={1.5}
+          strokeWidth={1.5 / zoom}
           strokeLinejoin="round"
           strokeLinecap="round"
         />
@@ -895,7 +902,7 @@ const Human2DModel: React.FC<Human2DModelProps> = ({
             d={leftLegPath}
             fill={colors.fill}
             stroke={colors.stroke}
-            strokeWidth={1.5}
+            strokeWidth={1.5 / zoom}
             strokeLinejoin="round"
             strokeLinecap="round"
           />
@@ -904,14 +911,14 @@ const Human2DModel: React.FC<Human2DModelProps> = ({
           d={rightLegPath}
           fill={colors.fill}
           stroke={colors.stroke}
-          strokeWidth={1.5}
+          strokeWidth={1.5 / zoom}
           strokeLinejoin="round"
           strokeLinecap="round"
         />
+        
+        {/* Debug guides - now transform with the model */}
+        {showGuides && renderGuides(offsetLandmarks, zoom)}
       </g>
-      
-      {/* Debug guides */}
-      {showGuides && renderGuides(offsetLandmarks)}
     </svg>
   );
 };

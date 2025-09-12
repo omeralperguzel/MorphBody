@@ -221,6 +221,13 @@ export const Scene2D: React.FC<Scene2DProps> = ({ measurements }) => {
   const [currentView, setCurrentView] = useState<ViewType>('front');
   const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
 
+  // Zoom and Pan state
+  const [zoom, setZoom] = useState(1.0);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+
   // Convert ViewType to Human2DView
   const getHuman2DView = (viewType: ViewType): Human2DView => {
     switch (viewType) {
@@ -297,6 +304,63 @@ export const Scene2D: React.FC<Scene2DProps> = ({ measurements }) => {
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Zoom and Pan event handlers
+  const handleWheel = (event: React.WheelEvent) => {
+    event.preventDefault();
+    const zoomSensitivity = 0.001;
+    const deltaZoom = -event.deltaY * zoomSensitivity;
+    const newZoom = Math.max(0.1, Math.min(5, zoom + deltaZoom));
+    
+    // Zoom towards mouse position
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+    
+    // Calculate new pan to zoom towards mouse
+    const zoomRatio = newZoom / zoom;
+    const newPanX = mouseX - (mouseX - pan.x) * zoomRatio;
+    const newPanY = mouseY - (mouseY - pan.y) * zoomRatio;
+    
+    setZoom(newZoom);
+    setPan({ x: newPanX, y: newPanY });
+  };
+
+  const handleMouseDown = (event: React.MouseEvent) => {
+    if (event.button === 0) { // Left mouse button
+      setIsDragging(true);
+      setDragStart({ x: event.clientX, y: event.clientY });
+      setPanStart({ x: pan.x, y: pan.y });
+    }
+  };
+
+  const handleMouseMove = (event: React.MouseEvent) => {
+    if (isDragging) {
+      const deltaX = event.clientX - dragStart.x;
+      const deltaY = event.clientY - dragStart.y;
+      setPan({
+        x: panStart.x + deltaX,
+        y: panStart.y + deltaY
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Reset view handler for reset button
+  const resetView = () => {
+    setZoom(1.0);
+    setPan({ x: 0, y: 0 });
+  };
+
+  // Listen for reset2DView event from App.tsx
+  useEffect(() => {
+    const handleReset = () => resetView();
+    window.addEventListener('reset2DView', handleReset);
+    return () => window.removeEventListener('reset2DView', handleReset);
   }, []);
 
   const viewConfigs = [
@@ -391,18 +455,19 @@ export const Scene2D: React.FC<Scene2DProps> = ({ measurements }) => {
         gender={measurements.gender}
         measurements={getModelMeasurements()}
         pose={{
-          shoulderAbductionDeg: 15,
-          elbowFlexionDeg: 5,
-          wristFlexionDeg: 0,
-          hipAbductionDeg: 5,
-          kneeFlexionDeg: 2,
-          ankleDorsiDeg: 0
+          // Use DEFAULT_POSE from Human2DModel - arms will point downward at 45°
         }}
         showGrid={true}
         gridStepCm={5}
         gridMajorEvery={2}
         showGuides={true}
         className="absolute inset-0"
+        zoom={zoom}
+        pan={pan}
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
       />
     </div>
   );
