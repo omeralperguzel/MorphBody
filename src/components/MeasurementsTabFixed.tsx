@@ -8,6 +8,68 @@ interface MeasurementsTabProps {
   onModeChange: (mode: MeasurementMode) => void;
 }
 
+// Component for compact measurement input with description
+const CompactMeasurementInput: React.FC<{
+    label: string;
+    value: number;
+    min: number;
+    max: number;
+    field: keyof Omit<DetailedMeasurements, 'height' | 'weight' | 'gender'>;
+    description?: string;
+    onChange: (field: keyof Omit<DetailedMeasurements, 'height' | 'weight' | 'gender'>, value: number) => void;
+  }> = ({ label, value, min, max, field, description, onChange }) => {
+    const percentage = ((value - min) / (max - min)) * 100;
+    
+    return (
+      <div style={styles.compactMeasurementInput}>
+        <div style={styles.compactInputHeader}>
+          <div style={styles.compactInputInfo}>
+            <p style={styles.compactInputLabel}>{label}</p>
+            {description && (
+              <p style={{ ...styles.inputDescription, fontSize: '12px', marginTop: '2px' }}>
+                {description}
+              </p>
+            )}
+          </div>
+          <div style={styles.compactInputValue}>
+            {value} cm
+          </div>
+        </div>
+        
+        <div style={styles.compactControls}>
+          <input
+            type="range"
+            min={min}
+            max={max}
+            step="1"
+            value={value}
+            onChange={(e) => onChange(field, Number(e.target.value))}
+            style={{
+              ...styles.compactSlider,
+              background: `linear-gradient(to right, rgba(59, 130, 246, 0.8) 0%, rgba(59, 130, 246, 0.8) ${percentage}%, rgba(255, 255, 255, 0.1) ${percentage}%, rgba(255, 255, 255, 0.1) 100%)`,
+            }}
+          />
+          <input
+            type="number"
+            min={min}
+            max={max}
+            value={value}
+            onChange={(e) => onChange(field, Number(e.target.value))}
+            style={styles.compactNumberInput}
+            onFocus={(e) => {
+              e.target.style.background = 'rgba(255, 255, 255, 0.15)';
+              e.target.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+            }}
+            onBlur={(e) => {
+              e.target.style.background = 'rgba(255, 255, 255, 0.1)';
+              e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+            }}
+          />
+        </div>
+      </div>
+    );
+  };
+
 // Inline styles to replace CSS classes
 const styles = {
   container: {
@@ -283,8 +345,8 @@ export const MeasurementsTab: React.FC<MeasurementsTabProps> = ({
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     headNeck: true,
     torso: true,
-    armsHands: false,
-    legsFeet: false,
+    armsHands: true,  // Expanded to show arm details
+    legsFeet: true,   // Expanded to show leg details
   });
 
   const toggleSection = (sectionKey: string) => {
@@ -331,28 +393,28 @@ export const MeasurementsTab: React.FC<MeasurementsTabProps> = ({
       return detailed[field] as number;
     }
     
-    // Default values based on gender
+    // Realistic anthropometric defaults based on gender
     const defaults = {
       male: {
         headCircumference: 58, neckCircumference: 38,
-        chestCircumference: 100, waistCircumference: 85, hipCircumference: 95,
-        armLength: 63, legLength: 85, thighCircumference: 58,
-        wristCircumference: 17, palmLength: 19, middleFingerLength: 8,
-        ankleCircumference: 24, toeLength: 26,
+        chestCircumference: 98, waistCircumference: 84, hipCircumference: 96,
+        armLength: 62, legLength: 78, thighCircumference: 55,
+        wristCircumference: 17, palmLength: 19, middleFingerLength: 8.5,
+        ankleCircumference: 23, toeLength: 26,
       },
       female: {
         headCircumference: 56, neckCircumference: 34,
-        chestCircumference: 90, waistCircumference: 70, hipCircumference: 100,
-        armLength: 58, legLength: 78, thighCircumference: 55,
-        wristCircumference: 15, palmLength: 17, middleFingerLength: 7,
-        ankleCircumference: 22, toeLength: 24,
+        chestCircumference: 90, waistCircumference: 70, hipCircumference: 98,
+        armLength: 59, legLength: 75, thighCircumference: 57,
+        wristCircumference: 15, palmLength: 18, middleFingerLength: 7.8,
+        ankleCircumference: 21, toeLength: 24,
       },
       other: {
         headCircumference: 57, neckCircumference: 36,
-        chestCircumference: 95, waistCircumference: 77, hipCircumference: 97,
-        armLength: 60, legLength: 81, thighCircumference: 56,
-        wristCircumference: 16, palmLength: 18, middleFingerLength: 7,
-        ankleCircumference: 23, toeLength: 25,
+        chestCircumference: 94, waistCircumference: 77, hipCircumference: 97,
+        armLength: 60, legLength: 76, thighCircumference: 56,
+        wristCircumference: 16, palmLength: 18.5, middleFingerLength: 8.1,
+        ankleCircumference: 22, toeLength: 25,
       }
     };
     
@@ -564,23 +626,23 @@ export const MeasurementsTab: React.FC<MeasurementsTabProps> = ({
       <div style={styles.measurementsGrid}>
         <MeasurementInput
           label="Height"
-          value={measurements.height}
+          value={measurements.height || 170}  // Default to 170cm
           min={140}
           max={200}
           unit="cm"
           icon="📏"
-          description="Total body height from head to toe"
+          description="Total body height from head to toe (170cm optimal for detailed anatomy)"
           onChange={(value) => handleBasicChange('height', value)}
         />
 
         <MeasurementInput
           label="Weight"
-          value={measurements.weight}
+          value={measurements.weight || 70}   // Default to 70kg
           min={40}
           max={150}
           unit="kg"
           icon="⚖️"
-          description="Body weight for proportional scaling"
+          description="Body weight for proportional muscle and fat distribution (70kg for athletic build)"
           onChange={(value) => handleBasicChange('weight', value)}
         />
 

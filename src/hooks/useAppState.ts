@@ -9,26 +9,44 @@ import type {
 } from '../types';
 
 const defaultBasicMeasurements: BasicMeasurements = {
-  height: 170,
-  weight: 70,
+  height: 170, // Will be updated based on gender
+  weight: 65,  // Will be updated based on gender
   gender: 'other',
+};
+
+const getGenderDefaults = (gender: 'male' | 'female' | 'other') => {
+  const defaults = {
+    male: {
+      height: 175, weight: 70,
+      headCircumference: 58, neckCircumference: 38,
+      chestCircumference: 98, waistCircumference: 84, hipCircumference: 96,
+      armLength: 62, legLength: 78, thighCircumference: 55,
+      wristCircumference: 17, palmLength: 19, middleFingerLength: 8.5,
+      ankleCircumference: 23, toeLength: 26,
+    },
+    female: {
+      height: 165, weight: 60,
+      headCircumference: 56, neckCircumference: 34,
+      chestCircumference: 90, waistCircumference: 70, hipCircumference: 98,
+      armLength: 59, legLength: 75, thighCircumference: 57,
+      wristCircumference: 15, palmLength: 18, middleFingerLength: 7.8,
+      ankleCircumference: 21, toeLength: 24,
+    },
+    other: {
+      height: 170, weight: 65,
+      headCircumference: 57, neckCircumference: 36,
+      chestCircumference: 94, waistCircumference: 77, hipCircumference: 97,
+      armLength: 60, legLength: 76, thighCircumference: 56,
+      wristCircumference: 16, palmLength: 18.5, middleFingerLength: 8.1,
+      ankleCircumference: 22, toeLength: 25,
+    }
+  };
+  return defaults[gender];
 };
 
 const defaultDetailedMeasurements: DetailedMeasurements = {
   ...defaultBasicMeasurements,
-  headCircumference: 56,
-  neckCircumference: 36,
-  chestCircumference: 90,
-  waistCircumference: 75,
-  hipCircumference: 95,
-  armLength: 60,
-  legLength: 75,
-  thighCircumference: 55,
-  wristCircumference: 16,
-  palmLength: 18,
-  middleFingerLength: 7.5,
-  ankleCircumference: 22,
-  toeLength: 25,
+  ...getGenderDefaults('other'),
 };
 
 export function useAppState() {
@@ -87,11 +105,41 @@ export function useAppState() {
 
   // Gender update function
   const updateGender = useCallback((gender: 'male' | 'female' | 'other') => {
-    setMeasurements(prev => ({
-      ...prev,
-      gender
-    }));
-  }, []);
+    const genderDefaults = getGenderDefaults(gender);
+    
+    setMeasurements(prev => {
+      if (measurementMode === 'detailed' && 'headCircumference' in prev) {
+        // Update detailed measurements with gender-specific defaults
+        return {
+          ...prev,
+          gender,
+          height: prev.height === defaultBasicMeasurements.height ? genderDefaults.height : prev.height,
+          weight: prev.weight === defaultBasicMeasurements.weight ? genderDefaults.weight : prev.weight,
+          headCircumference: prev.headCircumference === defaultDetailedMeasurements.headCircumference ? genderDefaults.headCircumference : prev.headCircumference,
+          neckCircumference: prev.neckCircumference === defaultDetailedMeasurements.neckCircumference ? genderDefaults.neckCircumference : prev.neckCircumference,
+          chestCircumference: prev.chestCircumference === defaultDetailedMeasurements.chestCircumference ? genderDefaults.chestCircumference : prev.chestCircumference,
+          waistCircumference: prev.waistCircumference === defaultDetailedMeasurements.waistCircumference ? genderDefaults.waistCircumference : prev.waistCircumference,
+          hipCircumference: prev.hipCircumference === defaultDetailedMeasurements.hipCircumference ? genderDefaults.hipCircumference : prev.hipCircumference,
+          armLength: prev.armLength === defaultDetailedMeasurements.armLength ? genderDefaults.armLength : prev.armLength,
+          legLength: prev.legLength === defaultDetailedMeasurements.legLength ? genderDefaults.legLength : prev.legLength,
+          thighCircumference: prev.thighCircumference === defaultDetailedMeasurements.thighCircumference ? genderDefaults.thighCircumference : prev.thighCircumference,
+          wristCircumference: prev.wristCircumference === defaultDetailedMeasurements.wristCircumference ? genderDefaults.wristCircumference : prev.wristCircumference,
+          palmLength: prev.palmLength === defaultDetailedMeasurements.palmLength ? genderDefaults.palmLength : prev.palmLength,
+          middleFingerLength: prev.middleFingerLength === defaultDetailedMeasurements.middleFingerLength ? genderDefaults.middleFingerLength : prev.middleFingerLength,
+          ankleCircumference: prev.ankleCircumference === defaultDetailedMeasurements.ankleCircumference ? genderDefaults.ankleCircumference : prev.ankleCircumference,
+          toeLength: prev.toeLength === defaultDetailedMeasurements.toeLength ? genderDefaults.toeLength : prev.toeLength,
+        } as DetailedMeasurements;
+      } else {
+        // Update basic measurements with gender-specific defaults
+        return {
+          ...prev,
+          gender,
+          height: prev.height === defaultBasicMeasurements.height ? genderDefaults.height : prev.height,
+          weight: prev.weight === defaultBasicMeasurements.weight ? genderDefaults.weight : prev.weight,
+        };
+      }
+    });
+  }, [measurementMode]);
 
   return {
     // State

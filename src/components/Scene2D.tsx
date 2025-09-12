@@ -1,5 +1,6 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { BasicMeasurements, DetailedMeasurements } from '../types';
+import Human2DModel, { type View as Human2DView } from '../blueprint/Human2DModel';
 
 type ViewType = 'front' | 'right' | 'left' | 'back';
 
@@ -8,623 +9,403 @@ interface Scene2DProps {
   measurementMode: 'basic' | 'detailed';
 }
 
-export const Scene2D: React.FC<Scene2DProps> = ({ measurements, measurementMode }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+// Inline styles to replace CSS classes
+const styles = {
+  mainContainer: {
+    width: '100%',
+    height: '100%',
+    position: 'relative' as const,
+    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+    overflow: 'hidden' as const,
+  },
+  fullViewport: {
+    width: '100vw',
+    height: '100vh',
+    position: 'fixed' as const,
+    top: 0,
+    left: 0,
+    zIndex: 0,
+    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+    overflow: 'hidden' as const,
+  },
+  topLeftOverlay: {
+    position: 'absolute' as const,
+    top: '16px',
+    left: '24px',
+    zIndex: 10,
+    pointerEvents: 'auto' as const,
+  },
+  viewIndicator: {
+    background: 'rgba(255, 255, 255, 0.05)',
+    backdropFilter: 'blur(24px)',
+    WebkitBackdropFilter: 'blur(24px)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '16px',
+    padding: '16px',
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.2)',
+  },
+  indicatorContent: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  },
+  iconContainer: {
+    padding: '8px',
+    background: 'linear-gradient(135deg, #a855f7, #ec4899)',
+    borderRadius: '12px',
+    boxShadow: '0 4px 6px rgba(168, 85, 247, 0.25)',
+  },
+  icon: {
+    fontSize: '20px',
+  },
+  indicatorText: {
+    margin: 0,
+  },
+  indicatorTitle: {
+    fontSize: '18px',
+    fontWeight: 'bold' as const,
+    color: 'white',
+    background: 'linear-gradient(135deg, white 0%, #d1d5db 100%)',
+    WebkitBackgroundClip: 'text',
+    backgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    marginBottom: '4px',
+  },
+  indicatorSubtitle: {
+    fontSize: '14px',
+    color: 'rgba(255, 255, 255, 0.6)',
+    margin: 0,
+  },
+  rightSideControls: {
+    position: 'absolute' as const,
+    top: 'calc(50% + 120px)',
+    right: '24px',
+    transform: 'translateY(-50%)',
+    zIndex: 10,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '16px',
+    pointerEvents: 'auto' as const,
+  },
+  controlsPanel: {
+    background: 'rgba(255, 255, 255, 0.05)',
+    backdropFilter: 'blur(24px)',
+    WebkitBackdropFilter: 'blur(24px)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '16px',
+    padding: '16px',
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.2)',
+  },
+  controlsTitle: {
+    fontSize: '16px',
+    fontWeight: '600' as const,
+    color: 'white',
+    marginBottom: '12px',
+    textAlign: 'center' as const,
+  },
+  viewButtonsGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '8px',
+    marginBottom: '16px',
+  },
+  viewButton: {
+    padding: '12px 16px',
+    border: 'none',
+    borderRadius: '12px',
+    fontSize: '14px',
+    fontWeight: '600' as const,
+    cursor: 'pointer' as const,
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    gap: '4px',
+    minWidth: '80px',
+  },
+  activeViewButton: {
+    background: 'linear-gradient(135deg, #a855f7, #ec4899)',
+    color: 'white',
+    boxShadow: '0 4px 8px rgba(168, 85, 247, 0.25)',
+    transform: 'scale(1.05)',
+  },
+  inactiveViewButton: {
+    background: 'rgba(255, 255, 255, 0.05)',
+    color: 'rgba(255, 255, 255, 0.7)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+  },
+  buttonIcon: {
+    fontSize: '16px',
+  },
+  buttonLabel: {
+    fontSize: '12px',
+  },
+  bottomRightOverlay: {
+    position: 'absolute' as const,
+    bottom: '24px',
+    right: '24px',
+    zIndex: 10,
+    pointerEvents: 'auto' as const,
+  },
+  statsPanel: {
+    background: 'rgba(255, 255, 255, 0.05)',
+    backdropFilter: 'blur(24px)',
+    WebkitBackdropFilter: 'blur(24px)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '16px',
+    padding: '16px',
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.2)',
+    minWidth: '200px',
+  },
+  statsContent: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '12px',
+  },
+  statItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  },
+  statIcon: {
+    fontSize: '20px',
+    width: '32px',
+    height: '32px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'linear-gradient(135deg, #a855f7, #ec4899)',
+    borderRadius: '8px',
+  },
+  statText: {
+    flex: 1,
+  },
+  statLabel: {
+    fontSize: '12px',
+    color: 'rgba(255, 255, 255, 0.6)',
+    margin: '0 0 2px 0',
+  },
+  statValue: {
+    fontSize: '14px',
+    fontWeight: '600' as const,
+    color: 'white',
+    margin: 0,
+  },
+  divider: {
+    height: '1px',
+    background: 'rgba(255, 255, 255, 0.1)',
+    margin: '4px 0',
+  },
+  keyboardHints: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '4px',
+  },
+  hint: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    fontSize: '12px',
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  hintKey: {
+    padding: '2px 6px',
+    background: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: '4px',
+    fontSize: '10px',
+    fontFamily: 'monospace',
+  },
+};
+
+export const Scene2D: React.FC<Scene2DProps> = ({ measurements }) => {
   const [currentView, setCurrentView] = useState<ViewType>('front');
-  const [zoom, setZoom] = useState(1);
-  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
   const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
 
-  // Convert measurements to 2D parameters (same as HumanModel)
-  const get2DParameters = useCallback(() => {
-    const baselines = {
+  // Convert ViewType to Human2DView
+  const getHuman2DView = (viewType: ViewType): Human2DView => {
+    switch (viewType) {
+      case 'front':
+      case 'back':
+        return 'front';
+      case 'right':
+      case 'left':
+        return 'side';
+      default:
+        return 'front';
+    }
+  };
+
+  // Convert measurements to the format expected by Human2DModel
+  const getModelMeasurements = () => {
+    const detailed = measurements as DetailedMeasurements;
+    
+    // Realistic anthropometric defaults based on gender
+    const defaults = {
       male: {
-        height: 175, weight: 70, headCircumference: 58, neckCircumference: 38,
-        chestCircumference: 100, waistCircumference: 85, hipCircumference: 95,
-        armLength: 63, wristCircumference: 17, palmLength: 19, fingerLength: 8,
-        legLength: 85, thighCircumference: 58, ankleCircumference: 24, toeLength: 26,
-        shoulderWidth: 1.2, hipWidth: 0.9, chestDepth: 0.8, waistTaper: 1.0,
+        headCircumference: 58, neckCircumference: 38,
+        chestCircumference: 98, waistCircumference: 84, hipCircumference: 96,
+        armLength: 62, wristCircumference: 17, palmLength: 19, middleFingerLength: 8.5,
+        legLength: 78, thighCircumference: 55, ankleCircumference: 23, toeLength: 26,
       },
       female: {
-        height: 165, weight: 60, headCircumference: 56, neckCircumference: 34,
-        chestCircumference: 90, waistCircumference: 70, hipCircumference: 100,
-        armLength: 58, wristCircumference: 15, palmLength: 17, fingerLength: 7.5,
-        legLength: 78, thighCircumference: 55, ankleCircumference: 22, toeLength: 24,
-        shoulderWidth: 0.9, hipWidth: 1.2, chestDepth: 1.3, waistTaper: 1.4,
+        headCircumference: 56, neckCircumference: 34,
+        chestCircumference: 90, waistCircumference: 70, hipCircumference: 98,
+        armLength: 59, wristCircumference: 15, palmLength: 18, middleFingerLength: 7.8,
+        legLength: 75, thighCircumference: 57, ankleCircumference: 21, toeLength: 24,
       },
       other: {
-        height: 170, weight: 65, headCircumference: 57, neckCircumference: 36,
-        chestCircumference: 95, waistCircumference: 77, hipCircumference: 97,
-        armLength: 60, wristCircumference: 16, palmLength: 18, fingerLength: 7.8,
-        legLength: 81, thighCircumference: 56, ankleCircumference: 23, toeLength: 25,
-        shoulderWidth: 1.05, hipWidth: 1.05, chestDepth: 1.05, waistTaper: 1.2,
+        headCircumference: 57, neckCircumference: 36,
+        chestCircumference: 94, waistCircumference: 77, hipCircumference: 97,
+        armLength: 60, wristCircumference: 16, palmLength: 18.5, middleFingerLength: 8.1,
+        legLength: 76, thighCircumference: 56, ankleCircumference: 22, toeLength: 25,
       }
     };
 
-    const baseline = baselines[measurements.gender];
-    const detailed = measurements as DetailedMeasurements;
-
+    const defaultValues = defaults[measurements.gender];
+    
     return {
-      height: measurements.height / baseline.height,
-      weight: measurements.weight / baseline.weight,
-      gender: measurements.gender,
-      shoulderWidth: baseline.shoulderWidth,
-      hipWidth: baseline.hipWidth,
-      chestDepth: baseline.chestDepth,
-      waistTaper: baseline.waistTaper,
-      chestCircumference: ((detailed.chestCircumference || baseline.chestCircumference) / baseline.chestCircumference),
-      waistCircumference: ((detailed.waistCircumference || baseline.waistCircumference) / baseline.waistCircumference),
-      hipCircumference: ((detailed.hipCircumference || baseline.hipCircumference) / baseline.hipCircumference),
-      armLength: ((detailed.armLength || baseline.armLength) / baseline.armLength),
-      legLength: ((detailed.legLength || baseline.legLength) / baseline.legLength),
+      height: measurements.height,
+      weight: measurements.weight,
+      headCircumference: detailed.headCircumference || defaultValues.headCircumference,
+      neckCircumference: detailed.neckCircumference || defaultValues.neckCircumference,
+      chestCircumference: detailed.chestCircumference || defaultValues.chestCircumference,
+      waistCircumference: detailed.waistCircumference || defaultValues.waistCircumference,
+      hipCircumference: detailed.hipCircumference || defaultValues.hipCircumference,
+      armLength: detailed.armLength || defaultValues.armLength,
+      wristCircumference: detailed.wristCircumference || defaultValues.wristCircumference,
+      palmLength: detailed.palmLength || defaultValues.palmLength,
+      middleFingerLength: detailed.middleFingerLength || defaultValues.middleFingerLength,
+      legLength: detailed.legLength || defaultValues.legLength,
+      thighCircumference: detailed.thighCircumference || defaultValues.thighCircumference,
+      ankleCircumference: detailed.ankleCircumference || defaultValues.ankleCircumference,
+      toeLength: detailed.toeLength || defaultValues.toeLength,
     };
-  }, [measurements, measurementMode]);
-
-  // Draw grid background
-  const drawGrid = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
-    const { width, height } = dimensions;
-    ctx.strokeStyle = 'rgba(100, 100, 100, 0.3)';
-    ctx.lineWidth = 1;
-
-    // Calculate grid size based on zoom
-    const baseGridSize = 20;
-    const gridSize = baseGridSize * zoom;
-    
-    // Calculate offset for centered panning
-    const offsetX = (panOffset.x % gridSize + gridSize) % gridSize;
-    const offsetY = (panOffset.y % gridSize + gridSize) % gridSize;
-
-    // Draw vertical lines
-    for (let x = offsetX; x < width; x += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
-      ctx.stroke();
-    }
-
-    // Draw horizontal lines
-    for (let y = offsetY; y < height; y += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
-      ctx.stroke();
-    }
-
-    // Draw thicker lines every 5 grid units
-    ctx.strokeStyle = 'rgba(150, 150, 150, 0.5)';
-    ctx.lineWidth = 2;
-    
-    const majorGridSize = gridSize * 5;
-    const majorOffsetX = (panOffset.x % majorGridSize + majorGridSize) % majorGridSize;
-    const majorOffsetY = (panOffset.y % majorGridSize + majorGridSize) % majorGridSize;
-
-    for (let x = majorOffsetX; x < width; x += majorGridSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
-      ctx.stroke();
-    }
-
-    for (let y = majorOffsetY; y < height; y += majorGridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
-      ctx.stroke();
-    }
-  }, [zoom, panOffset, dimensions]);
-
-  // Draw 2D silhouette
-  const drawSilhouette = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
-    const { width, height } = dimensions;
-    const params = get2DParameters();
-    
-    // Calculate base dimensions
-    const baseHeight = 300 * zoom * params.height;
-    const baseWidth = baseHeight * 0.25; // Body width relative to height
-    
-    // Center the figure
-    const centerX = width / 2 + panOffset.x;
-    const centerY = height / 2 + panOffset.y;
-    const figureY = centerY - baseHeight / 2;
-
-    ctx.fillStyle = 'rgba(100, 150, 255, 0.8)';
-    ctx.strokeStyle = 'rgba(80, 120, 200, 1.0)';
-    ctx.lineWidth = 2;
-
-    // Draw silhouette based on current view and gender
-    drawSilhouetteForView(ctx, currentView, params, centerX, figureY, baseWidth, baseHeight);
-  }, [currentView, get2DParameters, zoom, panOffset, dimensions]);
-
-  // Draw silhouette for specific view
-  const drawSilhouetteForView = (
-    ctx: CanvasRenderingContext2D,
-    view: ViewType,
-    params: any,
-    centerX: number,
-    figureY: number,
-    baseWidth: number,
-    baseHeight: number
-  ) => {
-    ctx.beginPath();
-
-    switch (view) {
-      case 'front':
-        drawFrontSilhouette(ctx, params, centerX, figureY, baseWidth, baseHeight);
-        break;
-      case 'right':
-        drawSideSilhouette(ctx, params, centerX, figureY, baseWidth, baseHeight, 'right');
-        break;
-      case 'left':
-        drawSideSilhouette(ctx, params, centerX, figureY, baseWidth, baseHeight, 'left');
-        break;
-      case 'back':
-        drawBackSilhouette(ctx, params, centerX, figureY, baseWidth, baseHeight);
-        break;
-    }
-
-    ctx.fill();
-    ctx.stroke();
   };
 
-  // Draw front view silhouette
-  const drawFrontSilhouette = (ctx: CanvasRenderingContext2D, params: any, centerX: number, figureY: number, baseWidth: number, baseHeight: number) => {
-    const headRadius = baseWidth * 0.15;
-    const neckWidth = baseWidth * 0.08;
-    const shoulderWidth = baseWidth * params.shoulderWidth * params.chestCircumference * 0.6;
-    const chestWidth = baseWidth * params.chestCircumference * 0.5;
-    const waistWidth = baseWidth * params.waistCircumference * params.waistTaper * 0.45;
-    const hipWidth = baseWidth * params.hipCircumference * params.hipWidth * 0.6;
-    const legWidth = baseWidth * 0.3;
-
-    const headY = figureY + baseHeight * 0.05;
-    const neckY = figureY + baseHeight * 0.12;
-    const shoulderY = figureY + baseHeight * 0.18;
-    const chestY = figureY + baseHeight * 0.35;
-    const waistY = figureY + baseHeight * 0.5;
-    const hipY = figureY + baseHeight * 0.65;
-    const legEndY = figureY + baseHeight * 0.95;
-
-    // Head (circle)
-    ctx.arc(centerX, headY, headRadius, 0, Math.PI * 2);
-    ctx.moveTo(centerX + headRadius, headY);
-
-    // Right side of body
-    ctx.lineTo(centerX + neckWidth, neckY);
-    ctx.lineTo(centerX + shoulderWidth, shoulderY);
-    
-    // Female breast curve
-    if (params.gender === 'female') {
-      const breastSize = params.chestCircumference * params.chestDepth * 0.15;
-      ctx.quadraticCurveTo(centerX + chestWidth + breastSize, chestY - baseHeight * 0.05, centerX + chestWidth, chestY);
-    } else {
-      ctx.lineTo(centerX + chestWidth, chestY);
-    }
-    
-    ctx.lineTo(centerX + waistWidth, waistY);
-    ctx.lineTo(centerX + hipWidth, hipY);
-    ctx.lineTo(centerX + legWidth, hipY);
-    ctx.lineTo(centerX + legWidth, legEndY);
-
-    // Bottom
-    ctx.lineTo(centerX - legWidth, legEndY);
-
-    // Left side of body (mirror)
-    ctx.lineTo(centerX - legWidth, hipY);
-    ctx.lineTo(centerX - hipWidth, hipY);
-    ctx.lineTo(centerX - waistWidth, waistY);
-    
-    if (params.gender === 'female') {
-      const breastSize = params.chestCircumference * params.chestDepth * 0.15;
-      ctx.lineTo(centerX - chestWidth, chestY);
-      ctx.quadraticCurveTo(centerX - chestWidth - breastSize, chestY - baseHeight * 0.05, centerX - chestWidth, chestY - baseHeight * 0.1);
-    } else {
-      ctx.lineTo(centerX - chestWidth, chestY);
-    }
-    
-    ctx.lineTo(centerX - shoulderWidth, shoulderY);
-    ctx.lineTo(centerX - neckWidth, neckY);
-
-    ctx.closePath();
-  };
-
-  // Draw side view silhouette
-  const drawSideSilhouette = (ctx: CanvasRenderingContext2D, params: any, centerX: number, figureY: number, baseWidth: number, baseHeight: number, side: 'left' | 'right') => {
-    const headRadius = baseWidth * 0.15;
-    const chestDepth = baseWidth * params.chestDepth * 0.4;
-    const waistDepth = chestDepth * 0.7;
-    const hipDepth = baseWidth * params.hipWidth * 0.35;
-    
-    const headY = figureY + baseHeight * 0.05;
-    const neckY = figureY + baseHeight * 0.12;
-    const shoulderY = figureY + baseHeight * 0.18;
-    const chestY = figureY + baseHeight * 0.35;
-    const waistY = figureY + baseHeight * 0.5;
-    const hipY = figureY + baseHeight * 0.65;
-    const legEndY = figureY + baseHeight * 0.95;
-
-    // Head profile
-    ctx.arc(centerX, headY, headRadius, 0, Math.PI * 2);
-    ctx.moveTo(centerX + headRadius, headY);
-
-    // Side profile
-    const direction = side === 'right' ? 1 : -1;
-    
-    ctx.lineTo(centerX, neckY);
-    ctx.lineTo(centerX + direction * chestDepth * 0.3, shoulderY);
-    
-    // Breast/chest profile
-    if (params.gender === 'female') {
-      ctx.quadraticCurveTo(centerX + direction * chestDepth * 1.2, chestY, centerX + direction * chestDepth * 0.8, chestY + baseHeight * 0.1);
-    } else {
-      ctx.lineTo(centerX + direction * chestDepth, chestY);
-    }
-    
-    ctx.lineTo(centerX + direction * waistDepth, waistY);
-    ctx.lineTo(centerX + direction * hipDepth, hipY);
-    ctx.lineTo(centerX + direction * hipDepth * 0.5, legEndY);
-    ctx.lineTo(centerX - direction * hipDepth * 0.5, legEndY);
-    ctx.lineTo(centerX - direction * hipDepth, hipY);
-    ctx.lineTo(centerX - direction * waistDepth, waistY);
-    
-    if (params.gender === 'female') {
-      ctx.lineTo(centerX - direction * chestDepth * 0.8, chestY + baseHeight * 0.1);
-      ctx.quadraticCurveTo(centerX - direction * chestDepth * 1.2, chestY, centerX - direction * chestDepth * 0.3, shoulderY);
-    } else {
-      ctx.lineTo(centerX - direction * chestDepth, chestY);
-      ctx.lineTo(centerX - direction * chestDepth * 0.3, shoulderY);
-    }
-    
-    ctx.lineTo(centerX, neckY);
-    ctx.closePath();
-  };
-
-  // Draw back view silhouette (similar to front but flatter)
-  const drawBackSilhouette = (ctx: CanvasRenderingContext2D, params: any, centerX: number, figureY: number, baseWidth: number, baseHeight: number) => {
-    const headRadius = baseWidth * 0.15;
-    const neckWidth = baseWidth * 0.08;
-    const shoulderWidth = baseWidth * params.shoulderWidth * params.chestCircumference * 0.6;
-    const chestWidth = baseWidth * params.chestCircumference * 0.45; // Slightly narrower than front
-    const waistWidth = baseWidth * params.waistCircumference * params.waistTaper * 0.45;
-    const hipWidth = baseWidth * params.hipCircumference * params.hipWidth * 0.6;
-    const legWidth = baseWidth * 0.3;
-
-    const headY = figureY + baseHeight * 0.05;
-    const neckY = figureY + baseHeight * 0.12;
-    const shoulderY = figureY + baseHeight * 0.18;
-    const chestY = figureY + baseHeight * 0.35;
-    const waistY = figureY + baseHeight * 0.5;
-    const hipY = figureY + baseHeight * 0.65;
-    const legEndY = figureY + baseHeight * 0.95;
-
-    // Head
-    ctx.arc(centerX, headY, headRadius, 0, Math.PI * 2);
-    ctx.moveTo(centerX + headRadius, headY);
-
-    // Right side
-    ctx.lineTo(centerX + neckWidth, neckY);
-    ctx.lineTo(centerX + shoulderWidth, shoulderY);
-    ctx.lineTo(centerX + chestWidth, chestY);
-    ctx.lineTo(centerX + waistWidth, waistY);
-    ctx.lineTo(centerX + hipWidth, hipY);
-    ctx.lineTo(centerX + legWidth, hipY);
-    ctx.lineTo(centerX + legWidth, legEndY);
-
-    // Bottom
-    ctx.lineTo(centerX - legWidth, legEndY);
-
-    // Left side (mirror)
-    ctx.lineTo(centerX - legWidth, hipY);
-    ctx.lineTo(centerX - hipWidth, hipY);
-    ctx.lineTo(centerX - waistWidth, waistY);
-    ctx.lineTo(centerX - chestWidth, chestY);
-    ctx.lineTo(centerX - shoulderWidth, shoulderY);
-    ctx.lineTo(centerX - neckWidth, neckY);
-
-    ctx.closePath();
-  };
-
-  // Render canvas
-  const render = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Draw grid
-    drawGrid(ctx, canvas);
-
-    // Draw silhouette
-    drawSilhouette(ctx, canvas);
-  }, [drawGrid, drawSilhouette]);
-
-  // Handle canvas resize - Use viewport dimensions like Scene3D
-  const handleResize = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    // Use viewport dimensions for fullscreen behavior like Scene3D
+  // Handle window resize
+  const handleResize = () => {
     const width = window.innerWidth;
     const height = window.innerHeight;
     
-    // Only resize if dimensions are valid
     if (width > 0 && height > 0) {
-      canvas.width = width * window.devicePixelRatio;
-      canvas.height = height * window.devicePixelRatio;
-      
-      // Update dimensions state
       setDimensions({ width, height });
-      
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-      }
     }
-  }, []);
-
-  // Mouse handlers for pan and zoom
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    setLastMousePos({ x: e.clientX, y: e.clientY });
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    
-    const deltaX = e.clientX - lastMousePos.x;
-    const deltaY = e.clientY - lastMousePos.y;
-    
-    setPanOffset(prev => ({
-      x: prev.x + deltaX,
-      y: prev.y + deltaY
-    }));
-    
-    setLastMousePos({ x: e.clientX, y: e.clientY });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-    setZoom(prev => Math.max(0.2, Math.min(3, prev * zoomFactor)));
   };
 
   // Effects
   useEffect(() => {
-    // Initial resize
     handleResize();
     window.addEventListener('resize', handleResize);
-    
-    // Force initial resize after component mount
-    const timer = setTimeout(() => {
-      handleResize();
-      render();
-    }, 100);
-    
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      clearTimeout(timer);
-    };
-  }, [handleResize]);
-
-  useEffect(() => {
-    render();
-  }, [render]);
-
-  // Re-render when canvas is resized
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const handleCanvasResize = () => {
-      // Small delay to ensure resize is complete
-      setTimeout(() => render(), 50);
-    };
-    
-    window.addEventListener('resize', handleCanvasResize);
-    return () => window.removeEventListener('resize', handleCanvasResize);
-  }, [render]);
-
-  // Keyboard shortcuts for view navigation
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.target !== document.body) return; // Only when not focused on input
-      
-      switch (e.key.toLowerCase()) {
-        case '1':
-          setCurrentView('front');
-          break;
-        case '2':
-          setCurrentView('right');
-          break;
-        case '3':
-          setCurrentView('left');
-          break;
-        case '4':
-          setCurrentView('back');
-          break;
-        case 'r':
-          resetView();
-          break;
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyPress);
-    return () => document.removeEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Listen for reset event from App.tsx
-  useEffect(() => {
-    const handleReset = () => {
-      resetView();
-    };
+  const viewConfigs = [
+    { key: 'front' as ViewType, icon: '👤', label: 'Front' },
+    { key: 'back' as ViewType, icon: '🔄', label: 'Back' },
+    { key: 'right' as ViewType, icon: '👉', label: 'Right' },
+    { key: 'left' as ViewType, icon: '👈', label: 'Left' },
+  ];
 
-    window.addEventListener('reset2DView', handleReset);
-    return () => window.removeEventListener('reset2DView', handleReset);
-  }, []);
-
-  const resetView = () => {
-    setZoom(1);
-    setPanOffset({ x: 0, y: 0 });
+  const viewEmoji = {
+    front: '👤',
+    back: '🔄', 
+    right: '👉',
+    left: '👈'
   };
 
   return (
-    <div 
-      className="w-full h-full relative bg-gray-900 overflow-hidden"
-      style={{ 
-        width: '100vw', 
-        height: '100vh',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        zIndex: 0
-      }}
-    >
-      {/* Modern UI Overlay - Top */}
-      <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between pointer-events-none">
-        {/* 2D Mode Indicator & View Navigation */}
-        <div className="flex items-center space-x-3 pointer-events-auto">
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl shadow-black/20">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl shadow-lg shadow-purple-500/25">
-                <span className="text-lg">📐</span>
-              </div>
-              <div>
-                <div className="text-sm font-bold text-white">2D Blueprint Mode</div>
-                <div className="text-xs text-white/60">Drag to pan • Scroll to zoom</div>
-              </div>
+    <div style={styles.fullViewport}>
+      {/* View Indicator - Top Left */}
+      <div style={styles.topLeftOverlay}>
+        <div style={styles.viewIndicator}>
+          <div style={styles.indicatorContent}>
+            <div style={styles.iconContainer}>
+              <span style={styles.icon}>{viewEmoji[currentView]}</span>
             </div>
-          </div>
-
-          {/* View Navigation */}
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-2 shadow-2xl shadow-black/20">
-            <div className="flex space-x-1">
-              {(['front', 'right', 'left', 'back'] as ViewType[]).map((view) => (
-                <button
-                  key={view}
-                  onClick={() => setCurrentView(view)}
-                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${
-                    currentView === view
-                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/25 scale-105'
-                      : 'text-white/70 hover:text-white hover:bg-white/10 hover:scale-102'
-                  }`}
-                >
-                  {view.charAt(0).toUpperCase() + view.slice(1)}
-                </button>
-              ))}
+            <div style={styles.indicatorText}>
+              <h3 style={styles.indicatorTitle}>2D View</h3>
+              <p style={styles.indicatorSubtitle}>{currentView.charAt(0).toUpperCase() + currentView.slice(1)} View</p>
             </div>
-          </div>
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center space-x-2 pointer-events-auto">
-          <button
-            onClick={resetView}
-            className="group bg-white/5 backdrop-blur-xl border border-white/10 hover:border-white/20 rounded-xl p-3 transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl hover:shadow-purple-500/10"
-            title="Reset View (R)"
-          >
-            <div className="text-white/70 group-hover:text-white transition-colors duration-300">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </div>
-          </button>
-
-          {/* Zoom Controls */}
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-2 shadow-lg flex items-center space-x-1">
-            <button
-              onClick={() => setZoom(prev => Math.max(0.2, prev * 0.8))}
-              className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300"
-              title="Zoom Out"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-              </svg>
-            </button>
-            <div className="text-xs text-white/60 font-mono min-w-12 text-center">
-              {Math.round(zoom * 100)}%
-            </div>
-            <button
-              onClick={() => setZoom(prev => Math.min(3, prev * 1.25))}
-              className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300"
-              title="Zoom In"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-            </button>
           </div>
         </div>
       </div>
 
-      {/* Canvas */}
-      <canvas
-        ref={canvasRef}
-        className="w-full h-full cursor-move"
-        style={{ 
-          width: '100%', 
-          height: '100%'
-        }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onWheel={handleWheel}
-      />
+      {/* Controls Panel - Right Side */}
+      <div style={styles.rightSideControls}>
+        <div style={styles.controlsPanel}>
+          <h3 style={styles.controlsTitle}>View Controls</h3>
+          
+          <div style={styles.viewButtonsGrid}>
+            {viewConfigs.map((view) => (
+              <button
+                key={view.key}
+                onClick={() => setCurrentView(view.key)}
+                style={{
+                  ...styles.viewButton,
+                  ...(currentView === view.key ? styles.activeViewButton : styles.inactiveViewButton),
+                }}
+              >
+                <span style={styles.buttonIcon}>{view.icon}</span>
+                <span style={styles.buttonLabel}>{view.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
-      {/* Modern UI Overlay - Bottom */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10 pointer-events-none">
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl shadow-black/20 pointer-events-auto">
-          <div className="flex items-center space-x-6 text-sm">
-            {/* Current View & Model Stats */}
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg shadow-lg shadow-purple-500/25">
-                <span className="text-sm">👁️</span>
+      {/* Stats Panel - Bottom Right */}
+      <div style={styles.bottomRightOverlay}>
+        <div style={styles.statsPanel}>
+          <div style={styles.statsContent}>
+            <div style={styles.statItem}>
+              <div style={styles.statIcon}>
+                <span>📏</span>
               </div>
-              <div>
-                <div className="text-white/90 font-medium flex items-center space-x-3">
-                  <span className="text-purple-400">{currentView.charAt(0).toUpperCase() + currentView.slice(1)} View</span>
-                  <span className="text-white/40">•</span>
-                  <span>{measurements.height}cm • {measurements.weight}kg</span>
-                  <span className="text-white/40">•</span>
-                  <span className="capitalize text-blue-400">{measurements.gender}</span>
-                </div>
-                <div className="text-white/60 text-xs">
-                  Zoom: {Math.round(zoom * 100)}% • Pan: ({Math.round(panOffset.x)}, {Math.round(panOffset.y)})
-                </div>
+              <div style={styles.statText}>
+                <p style={styles.statLabel}>Current View</p>
+                <p style={styles.statValue}>{currentView.charAt(0).toUpperCase() + currentView.slice(1)}</p>
               </div>
             </div>
 
-            {/* Keyboard Shortcuts */}
-            <div className="hidden lg:flex items-center space-x-4 text-xs text-white/60 border-l border-white/10 pl-6">
-              <div className="flex items-center space-x-2">
-                <kbd className="px-2 py-1 bg-white/10 rounded border border-white/20 font-mono">1-4</kbd>
-                <span>Views</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <kbd className="px-2 py-1 bg-white/10 rounded border border-white/20 font-mono">R</kbd>
-                <span>Reset</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <kbd className="px-2 py-1 bg-white/10 rounded border border-white/20 font-mono">Drag</kbd>
+            <div style={styles.divider} />
+
+            <div style={styles.keyboardHints}>
+              <div style={styles.hint}>
+                <span style={styles.hintKey}>Drag</span>
                 <span>Pan</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <kbd className="px-2 py-1 bg-white/10 rounded border border-white/20 font-mono">Wheel</kbd>
+              <div style={styles.hint}>
+                <span style={styles.hintKey}>Wheel</span>
                 <span>Zoom</span>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Human2D SVG Model */}
+      <Human2DModel
+        width={dimensions.width}
+        height={dimensions.height}
+        view={getHuman2DView(currentView)}
+        gender={measurements.gender}
+        measurements={getModelMeasurements()}
+        pose={{
+          shoulderAbductionDeg: 15,
+          elbowFlexionDeg: 5,
+          wristFlexionDeg: 0,
+          hipAbductionDeg: 5,
+          kneeFlexionDeg: 2,
+          ankleDorsiDeg: 0
+        }}
+        showGrid={true}
+        gridStepCm={5}
+        gridMajorEvery={2}
+        showGuides={true}
+        className="absolute inset-0"
+      />
     </div>
   );
 };
+
+export default Scene2D;

@@ -78,7 +78,7 @@ export const MeasurementsTab: React.FC<MeasurementsTabProps> = ({
       <div className="space-y-6">
         <ModernMeasurementInput
           label="Height"
-          value={measurements.height}
+          value={measurements.height || (measurements.gender === 'male' ? 175 : measurements.gender === 'female' ? 165 : 170)}
           min={140}
           max={200}
           unit="cm"
@@ -90,7 +90,7 @@ export const MeasurementsTab: React.FC<MeasurementsTabProps> = ({
 
         <ModernMeasurementInput
           label="Weight"
-          value={measurements.weight}
+          value={measurements.weight || (measurements.gender === 'male' ? 70 : measurements.gender === 'female' ? 60 : 65)}
           min={40}
           max={150}
           unit="kg"
@@ -164,7 +164,7 @@ export const MeasurementsTab: React.FC<MeasurementsTabProps> = ({
               measurements={[
                 {
                   label: 'Head Circumference',
-                  value: (measurements as DetailedMeasurements).headCircumference || 56,
+                  value: (measurements as DetailedMeasurements).headCircumference || (measurements.gender === 'male' ? 58 : measurements.gender === 'female' ? 56 : 57),
                   min: 50,
                   max: 65,
                   unit: 'cm',
@@ -172,7 +172,7 @@ export const MeasurementsTab: React.FC<MeasurementsTabProps> = ({
                 },
                 {
                   label: 'Neck Circumference',
-                  value: (measurements as DetailedMeasurements).neckCircumference || 36,
+                  value: (measurements as DetailedMeasurements).neckCircumference || (measurements.gender === 'male' ? 38 : measurements.gender === 'female' ? 34 : 36),
                   min: 30,
                   max: 45,
                   unit: 'cm',
@@ -189,7 +189,7 @@ export const MeasurementsTab: React.FC<MeasurementsTabProps> = ({
               measurements={[
                 {
                   label: 'Chest Circumference',
-                  value: (measurements as DetailedMeasurements).chestCircumference || 90,
+                  value: (measurements as DetailedMeasurements).chestCircumference || (measurements.gender === 'male' ? 98 : measurements.gender === 'female' ? 90 : 94),
                   min: 70,
                   max: 130,
                   unit: 'cm',
@@ -197,7 +197,7 @@ export const MeasurementsTab: React.FC<MeasurementsTabProps> = ({
                 },
                 {
                   label: 'Waist Circumference',
-                  value: (measurements as DetailedMeasurements).waistCircumference || 75,
+                  value: (measurements as DetailedMeasurements).waistCircumference || (measurements.gender === 'male' ? 84 : measurements.gender === 'female' ? 70 : 77),
                   min: 60,
                   max: 120,
                   unit: 'cm',
@@ -205,7 +205,7 @@ export const MeasurementsTab: React.FC<MeasurementsTabProps> = ({
                 },
                 {
                   label: 'Hip Circumference',
-                  value: (measurements as DetailedMeasurements).hipCircumference || 95,
+                  value: (measurements as DetailedMeasurements).hipCircumference || (measurements.gender === 'male' ? 96 : measurements.gender === 'female' ? 98 : 97),
                   min: 75,
                   max: 130,
                   unit: 'cm',
@@ -222,7 +222,7 @@ export const MeasurementsTab: React.FC<MeasurementsTabProps> = ({
               measurements={[
                 {
                   label: 'Arm Length',
-                  value: (measurements as DetailedMeasurements).armLength || 60,
+                  value: (measurements as DetailedMeasurements).armLength || (measurements.gender === 'male' ? 62 : measurements.gender === 'female' ? 59 : 60),
                   min: 50,
                   max: 80,
                   unit: 'cm',
@@ -230,7 +230,7 @@ export const MeasurementsTab: React.FC<MeasurementsTabProps> = ({
                 },
                 {
                   label: 'Wrist Circumference',
-                  value: (measurements as DetailedMeasurements).wristCircumference || 16,
+                  value: (measurements as DetailedMeasurements).wristCircumference || (measurements.gender === 'male' ? 17 : measurements.gender === 'female' ? 15 : 16),
                   min: 12,
                   max: 22,
                   unit: 'cm',
@@ -238,7 +238,7 @@ export const MeasurementsTab: React.FC<MeasurementsTabProps> = ({
                 },
                 {
                   label: 'Palm Length',
-                  value: (measurements as DetailedMeasurements).palmLength || 18,
+                  value: (measurements as DetailedMeasurements).palmLength || (measurements.gender === 'male' ? 19 : measurements.gender === 'female' ? 18 : 18.5),
                   min: 15,
                   max: 22,
                   unit: 'cm',
@@ -246,7 +246,7 @@ export const MeasurementsTab: React.FC<MeasurementsTabProps> = ({
                 },
                 {
                   label: 'Middle Finger Length',
-                  value: (measurements as DetailedMeasurements).middleFingerLength || 7.5,
+                  value: (measurements as DetailedMeasurements).middleFingerLength || (measurements.gender === 'male' ? 8.5 : measurements.gender === 'female' ? 7.8 : 8.1),
                   min: 6,
                   max: 10,
                   step: 0.1,
@@ -264,7 +264,7 @@ export const MeasurementsTab: React.FC<MeasurementsTabProps> = ({
               measurements={[
                 {
                   label: 'Leg Length',
-                  value: (measurements as DetailedMeasurements).legLength || 75,
+                  value: (measurements as DetailedMeasurements).legLength || (measurements.gender === 'male' ? 78 : measurements.gender === 'female' ? 75 : 76),
                   min: 60,
                   max: 95,
                   unit: 'cm',
@@ -272,7 +272,7 @@ export const MeasurementsTab: React.FC<MeasurementsTabProps> = ({
                 },
                 {
                   label: 'Thigh Circumference',
-                  value: (measurements as DetailedMeasurements).thighCircumference || 55,
+                  value: (measurements as DetailedMeasurements).thighCircumference || (measurements.gender === 'male' ? 55 : measurements.gender === 'female' ? 57 : 56),
                   min: 40,
                   max: 75,
                   unit: 'cm',
@@ -280,7 +280,7 @@ export const MeasurementsTab: React.FC<MeasurementsTabProps> = ({
                 },
                 {
                   label: 'Ankle Circumference',
-                  value: (measurements as DetailedMeasurements).ankleCircumference || 22,
+                  value: (measurements as DetailedMeasurements).ankleCircumference || (measurements.gender === 'male' ? 23 : measurements.gender === 'female' ? 21 : 22),
                   min: 18,
                   max: 28,
                   unit: 'cm',
@@ -288,7 +288,7 @@ export const MeasurementsTab: React.FC<MeasurementsTabProps> = ({
                 },
                 {
                   label: 'Toe Length',
-                  value: (measurements as DetailedMeasurements).toeLength || 25,
+                  value: (measurements as DetailedMeasurements).toeLength || (measurements.gender === 'male' ? 26 : measurements.gender === 'female' ? 24 : 25),
                   min: 20,
                   max: 32,
                   unit: 'cm',

@@ -1,5 +1,5 @@
 import { Scene3D } from './components/Scene3DInline';
-import { Scene2D } from './components/Scene2DInline';
+import { Scene2D } from './components/Scene2D';
 import { ModeToggle } from './components/ModeToggle';
 import type { Scene3DRef } from './components/Scene3DInline';
 import { TabNavigation } from './components/TabNavigation';
