@@ -1,4 +1,6 @@
 import { Scene3D } from './components/Scene3D';
+import { Scene2D } from './components/Scene2D';
+import { ModeToggle } from './components/ModeToggle';
 import type { Scene3DRef } from './components/Scene3D';
 import { TabNavigation } from './components/TabNavigation';
 import { MeasurementsTab } from './components/MeasurementsTab';
@@ -9,24 +11,30 @@ import { useState, useRef } from 'react';
 import './App.css';
 
 function App() {
+  const [mode, setMode] = useState<'3d' | '2d'>('3d');
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const sceneRef = useRef<Scene3DRef>(null);
+
   const {
     activeTab,
     measurementMode,
     measurements,
     selectedClothing,
     selectedAccessories,
+    setClothing,
+    setAccessories,
     handleTabChange,
     handleModeChange,
     handleMeasurementsChange,
-    handleClothingChange,
-    handleAccessoriesChange,
   } = useAppState();
 
-  const [isPanelOpen, setIsPanelOpen] = useState(true);
-  const sceneRef = useRef<Scene3DRef>(null);
-
   const handleResetCamera = () => {
-    sceneRef.current?.resetCamera();
+    if (mode === '3d' && sceneRef.current) {
+      sceneRef.current.resetCamera();
+    } else if (mode === '2d') {
+      // For 2D mode, we'll trigger a custom event that Scene2D can listen to
+      window.dispatchEvent(new CustomEvent('reset2DView'));
+    }
   };
 
   const renderActiveTab = () => {
@@ -44,14 +52,14 @@ function App() {
         return (
           <ClothingTab
             selectedClothing={selectedClothing}
-            onClothingChange={handleClothingChange}
+            onClothingChange={setClothing}
           />
         );
       case 'cosplay':
         return (
           <CosplayTab
             selectedAccessories={selectedAccessories}
-            onAccessoriesChange={handleAccessoriesChange}
+            onAccessoriesChange={setAccessories}
           />
         );
       default:
@@ -60,42 +68,23 @@ function App() {
   };
 
   return (
-    <div className="h-screen w-screen bg-slate-900 text-white relative overflow-hidden">
-      {/* Full-Screen 3D Scene Background */}
-      <div className="absolute inset-0 z-0">
-        <Scene3D
-          ref={sceneRef}
-          measurements={measurements}
-          selectedClothing={selectedClothing}
-          selectedAccessories={selectedAccessories}
-          measurementMode={measurementMode}
-        />
-      </div>
+    <div className="w-full h-screen bg-gray-100 relative overflow-hidden">
+      {/* Mode Toggle */}
+      <ModeToggle mode={mode} onModeChange={setMode} />
 
-      {/* Mobile Toggle Button - Aligned with 20px padding */}
+      {/* Mobile Menu Button */}
       <button
-        onClick={() => setIsPanelOpen(!isPanelOpen)}
-        className="lg:hidden fixed z-50 bg-gray-800/90 backdrop-blur-sm text-white p-3 rounded-xl shadow-lg border border-gray-700/50 hover:bg-gray-700/90 transition-all duration-200"
-        style={{
-          top: '20px',
-          left: '20px'
-        }}
-        aria-label="Toggle settings panel"
+        onClick={() => setIsPanelOpen(true)}
+        className="lg:hidden fixed top-20 left-4 bg-gray-800/95 backdrop-blur-md text-white p-3 rounded-xl shadow-xl border border-gray-600/30 z-50"
       >
-        {isPanelOpen ? (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        ) : (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        )}
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
       </button>
 
-      {/* Left Settings Panel - Almost Full Height with 20px padding */}
+      {/* Left Settings Panel - Always visible on desktop, slide-in on mobile */}
       <div
-        className={`fixed bg-gray-800/95 backdrop-blur-md rounded-xl shadow-2xl border border-gray-600/30 z-40 transition-transform duration-300 ease-out ${
+        className={`fixed bg-gray-800/95 backdrop-blur-md rounded-xl shadow-2xl border border-gray-600/30 z-40 lg:translate-x-0 transition-transform duration-300 ease-out ${
           isPanelOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
         style={{
@@ -112,7 +101,7 @@ function App() {
             <div className="flex items-center justify-between">
               <h1 className="text-xl font-bold text-white flex items-center">
                 <span className="mr-3 text-2xl">👤</span>
-                MorphBody 3D
+                MorphBody {mode === '3d' ? '3D' : '2D'}
               </h1>
               <button
                 onClick={() => setIsPanelOpen(false)}
@@ -123,7 +112,9 @@ function App() {
                 </svg>
               </button>
             </div>
-            <p className="text-sm text-gray-400 mt-2">Customize your 3D human model</p>
+            <p className="text-sm text-gray-400 mt-2">
+              Customize your {mode === '3d' ? '3D' : '2D'} human model
+            </p>
           </div>
 
           {/* Tab Navigation */}
@@ -135,7 +126,7 @@ function App() {
           </div>
 
           {/* Tab Content - Scrollable */}
-          <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
+          <div className="flex-1 overflow-y-auto pl-2 pr-4 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
             <div className="space-y-1">
               {renderActiveTab()}
             </div>
@@ -143,40 +134,79 @@ function App() {
         </div>
       </div>
 
-      {/* Top-Right Orbit Controls Panel - Dynamically positioned with 20px padding */}
+      {/* Top-Right Camera Controls Panel - Adapts to current mode */}
       <div 
         className="fixed bg-gray-800/95 backdrop-blur-md rounded-xl shadow-xl border border-gray-600/30 p-4 z-40 transition-all duration-300"
         style={{
           top: '20px',
           right: '20px',
-          maxWidth: 'calc(100vw - 40px)', // Ensure it doesn't exceed viewport with 20px padding on both sides
+          maxWidth: 'calc(100vw - 40px)',
         }}
       >
         <div className="space-y-3">
-          <h3 className="text-sm font-bold text-white">Camera Controls</h3>
+          <h3 className="text-sm font-bold text-white">{mode === '3d' ? 'Camera Controls' : 'View Controls'}</h3>
           <div className="space-y-2 text-xs text-gray-300">
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
-              <span>Left Click: Rotate</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
-              <span>Right Click: Pan</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0"></div>
-              <span>Scroll: Zoom</span>
-            </div>
+            {mode === '3d' ? (
+              <>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                  <span>Left Click: Rotate</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+                  <span>Right Click: Pan</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0"></div>
+                  <span>Scroll: Zoom</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0"></div>
+                  <span>Drag: Pan view</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                  <span>Scroll: Zoom</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+                  <span>Keys: 1-4 for views</span>
+                </div>
+              </>
+            )}
           </div>
           <div className="border-t border-gray-600 pt-3">
             <button
               onClick={handleResetCamera}
               className="w-full px-3 py-2 text-xs font-medium bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              Reset View
+              Reset View {mode === '2d' ? '(R)' : ''}
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Main Viewport - Full space utilization */}
+      <div 
+        className="absolute bg-gray-900 left-0 top-0 right-0 bottom-0 lg:left-[340px] lg:top-2 lg:right-2 lg:bottom-2"
+      >
+        {mode === '3d' ? (
+          <Scene3D
+            ref={sceneRef}
+            measurements={measurements}
+            selectedClothing={selectedClothing}
+            selectedAccessories={selectedAccessories}
+            measurementMode={measurementMode}
+          />
+        ) : (
+          <Scene2D
+            measurements={measurements}
+            measurementMode={measurementMode}
+          />
+        )}
       </div>
 
       {/* Mobile Overlay */}

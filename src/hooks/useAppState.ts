@@ -77,6 +77,22 @@ export function useAppState() {
     setActiveTab(tab);
   }, []);
 
+  // Individual measurement update function
+  const updateMeasurement = useCallback((key: string, value: number | string) => {
+    setMeasurements(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  }, []);
+
+  // Gender update function
+  const updateGender = useCallback((gender: 'male' | 'female' | 'other') => {
+    setMeasurements(prev => ({
+      ...prev,
+      gender
+    }));
+  }, []);
+
   return {
     // State
     activeTab,
@@ -84,6 +100,7 @@ export function useAppState() {
     measurements,
     selectedClothing,
     selectedAccessories,
+    selectedGender: measurements.gender,
     
     // Actions
     handleTabChange,
@@ -91,5 +108,9 @@ export function useAppState() {
     handleMeasurementsChange,
     handleClothingChange,
     handleAccessoriesChange,
+    updateMeasurement,
+    updateGender,
+    setClothing: handleClothingChange,
+    setAccessories: handleAccessoriesChange,
   };
 }
