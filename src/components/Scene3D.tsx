@@ -140,9 +140,9 @@ export const Scene3D = forwardRef<Scene3DRef, Scene3DProps>(({
         {/* 3D Content */}
         <Suspense fallback={<LoadingIndicator />}>
           <group position={[0, 0, 0]}>
-            {/* Human Model */}
+            {/* Human Model with body modifications applied */}
             <HumanModel
-              measurements={measurements}
+              measurements={applyBodyModifications(measurements, selectedAccessories)}
               measurementMode={measurementMode}
             />
             
@@ -151,7 +151,7 @@ export const Scene3D = forwardRef<Scene3DRef, Scene3DProps>(({
               <ClothingModel
                 key={item.id}
                 item={item}
-                measurements={measurements}
+                measurements={applyBodyModifications(measurements, selectedAccessories)}
               />
             ))}
             
@@ -169,5 +169,50 @@ export const Scene3D = forwardRef<Scene3DRef, Scene3DProps>(({
     </div>
   );
 });
+
+// Apply body modifications from cosplay accessories
+function applyBodyModifications(
+  measurements: BasicMeasurements | DetailedMeasurements,
+  accessories: Accessory[]
+): BasicMeasurements | DetailedMeasurements {
+  if (!accessories.length) return measurements;
+  
+  // Calculate cumulative modifications
+  let chestScale = 1.0;
+  let waistScale = 1.0;
+  let hipScale = 1.0;
+  
+  accessories.forEach(accessory => {
+    if (accessory.bodyModifications) {
+      if (accessory.bodyModifications.chestScale) {
+        chestScale *= accessory.bodyModifications.chestScale;
+      }
+      if (accessory.bodyModifications.waistScale) {
+        waistScale *= accessory.bodyModifications.waistScale;
+      }
+      if (accessory.bodyModifications.hipScale) {
+        hipScale *= accessory.bodyModifications.hipScale;
+      }
+    }
+  });
+  
+  // Apply modifications to detailed measurements if available
+  const detailed = measurements as DetailedMeasurements;
+  if (detailed.chestCircumference || detailed.waistCircumference || detailed.hipCircumference) {
+    return {
+      ...detailed,
+      chestCircumference: (detailed.chestCircumference || 
+        (measurements.gender === 'male' ? 100 : measurements.gender === 'female' ? 90 : 95)) * chestScale,
+      waistCircumference: (detailed.waistCircumference || 
+        (measurements.gender === 'male' ? 85 : measurements.gender === 'female' ? 70 : 77)) * waistScale,
+      hipCircumference: (detailed.hipCircumference || 
+        (measurements.gender === 'male' ? 95 : measurements.gender === 'female' ? 100 : 97)) * hipScale,
+    };
+  }
+  
+  // For basic measurements, we can't directly modify circumferences, 
+  // but the body modifications will still be applied through the accessory visual effects
+  return measurements;
+}
 
 Scene3D.displayName = 'Scene3D';

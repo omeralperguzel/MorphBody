@@ -23,7 +23,7 @@ export interface DetailedMeasurements extends BasicMeasurements {
 export interface ClothingItem {
   id: string;
   name: string;
-  type: 'tshirt' | 'hoodie' | 'pants' | 'suit';
+  type: 'tshirt' | 'hoodie' | 'pants' | 'suit' | 'dress' | 'skirt';
   size: 'S' | 'M' | 'L';
   modelPath: string;
   thumbnail?: string;

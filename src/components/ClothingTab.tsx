@@ -16,6 +16,12 @@ const availableClothing: Omit<ClothingItem, 'id'>[] = [
   { name: 'Pants', type: 'pants', size: 'S', modelPath: '/assets/clothing/pants_s.glb' },
   { name: 'Pants', type: 'pants', size: 'M', modelPath: '/assets/clothing/pants_m.glb' },
   { name: 'Pants', type: 'pants', size: 'L', modelPath: '/assets/clothing/pants_l.glb' },
+  { name: 'Dress', type: 'dress', size: 'S', modelPath: '/assets/clothing/dress_s.glb' },
+  { name: 'Dress', type: 'dress', size: 'M', modelPath: '/assets/clothing/dress_m.glb' },
+  { name: 'Dress', type: 'dress', size: 'L', modelPath: '/assets/clothing/dress_l.glb' },
+  { name: 'Skirt', type: 'skirt', size: 'S', modelPath: '/assets/clothing/skirt_s.glb' },
+  { name: 'Skirt', type: 'skirt', size: 'M', modelPath: '/assets/clothing/skirt_m.glb' },
+  { name: 'Skirt', type: 'skirt', size: 'L', modelPath: '/assets/clothing/skirt_l.glb' },
   { name: 'Suit', type: 'suit', size: 'S', modelPath: '/assets/clothing/suit_s.glb' },
   { name: 'Suit', type: 'suit', size: 'M', modelPath: '/assets/clothing/suit_m.glb' },
   { name: 'Suit', type: 'suit', size: 'L', modelPath: '/assets/clothing/suit_l.glb' },
@@ -138,6 +144,10 @@ function getClothingIcon(type: ClothingItem['type']): string {
       return '🧥';
     case 'pants':
       return '👖';
+    case 'dress':
+      return '👗';
+    case 'skirt':
+      return '👚';
     case 'suit':
       return '🤵';
     default:
