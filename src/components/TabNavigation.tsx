@@ -9,25 +9,31 @@ interface TabNavigationProps {
 const styles = {
   container: {
     display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '12px',
+    flexDirection: 'row' as const,
+    gap: '6px',
+    width: '100%',
+    flexWrap: 'nowrap' as const,
   } as React.CSSProperties,
 
   tabButton: {
     position: 'relative' as const,
-    width: '100%',
+    flex: '1 1 calc(33.333% - 4px)',
     display: 'flex',
+    flexDirection: 'column' as const,
     alignItems: 'center',
-    gap: '16px',
-    padding: '16px',
-    borderRadius: '16px',
+    gap: '8px',
+    padding: '12px 8px',
+    borderRadius: '12px',
     fontWeight: '600',
     transition: 'all 0.3s ease',
-    textAlign: 'left' as const,
+    textAlign: 'center' as const,
     overflow: 'hidden',
     border: 'none',
     cursor: 'pointer',
     background: 'transparent',
+    minHeight: '80px',
+    minWidth: 0,
+    maxWidth: 'calc(33.333% - 4px)',
   } as React.CSSProperties,
 
   tabButtonActive: {
@@ -57,7 +63,7 @@ const styles = {
     right: 0,
     bottom: 0,
     opacity: 0.2,
-    borderRadius: '16px',
+    borderRadius: '12px',
   } as React.CSSProperties,
 
   iconContainer: {
@@ -66,9 +72,9 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    width: '48px',
-    height: '48px',
-    borderRadius: '12px',
+    width: '36px',
+    height: '36px',
+    borderRadius: '10px',
     transition: 'all 0.3s ease',
   } as React.CSSProperties,
 
@@ -85,29 +91,40 @@ const styles = {
   } as React.CSSProperties,
 
   icon: {
-    fontSize: '20px',
+    fontSize: '18px',
     filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))',
   } as React.CSSProperties,
 
   textContent: {
     position: 'relative' as const,
     zIndex: 10,
-    flex: 1,
-    minWidth: 0,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    gap: '2px',
   } as React.CSSProperties,
 
   tabLabel: {
     fontWeight: 'bold',
-    fontSize: '16px',
-    lineHeight: 1,
-    marginBottom: '4px',
+    fontSize: '13px',
+    lineHeight: 1.2,
+    marginBottom: '2px',
     margin: 0,
+    textOverflow: 'ellipsis',
+    overflow: 'hidden',
+    maxWidth: '100%',
+    whiteSpace: 'nowrap',
   } as React.CSSProperties,
 
   tabDescription: {
-    fontSize: '14px',
+    fontSize: '11px',
     transition: 'color 0.3s ease',
     margin: 0,
+    textOverflow: 'ellipsis',
+    overflow: 'hidden',
+    opacity: 0.8,
+    maxWidth: '100%',
+    whiteSpace: 'nowrap',
   } as React.CSSProperties,
 
   tabDescriptionActive: {
@@ -124,11 +141,13 @@ const styles = {
 
   activeIndicator: {
     position: 'absolute' as const,
-    right: '12px',
-    width: '8px',
-    height: '32px',
-    borderRadius: '4px',
-    boxShadow: '0 4px 10px rgba(0, 0, 0, 0.3)',
+    bottom: '6px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    width: '24px',
+    height: '4px',
+    borderRadius: '2px',
+    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.3)',
   } as React.CSSProperties,
 
   borderAnimation: {
@@ -137,7 +156,7 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: '16px',
+    borderRadius: '12px',
     transition: 'all 0.3s ease',
     pointerEvents: 'none' as const,
   } as React.CSSProperties,
@@ -153,14 +172,15 @@ const styles = {
   decorativeElement: {
     display: 'flex',
     justifyContent: 'center',
-    paddingTop: '16px',
+    paddingTop: '8px',
+    width: '100%',
   } as React.CSSProperties,
 
   decorativeLine: {
-    width: '64px',
-    height: '4px',
+    width: '80px',
+    height: '2px',
     background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%)',
-    borderRadius: '2px',
+    borderRadius: '1px',
   } as React.CSSProperties,
 };
 
@@ -315,11 +335,6 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({ activeTab, onTabCh
           <div style={getBorderAnimationStyle(tab)} />
         </button>
       ))}
-      
-      {/* Decorative element */}
-      <div style={styles.decorativeElement}>
-        <div style={styles.decorativeLine} />
-      </div>
     </div>
   );
 };

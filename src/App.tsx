@@ -234,7 +234,7 @@ function App() {
           left: '24px',
           top: '140px', // Positioned below Scene overlays
           bottom: '24px',
-          width: '320px', // Slightly smaller width
+          width: '500px', // Slightly smaller width
           maxWidth: 'calc(100vw - 48px)',
           borderRadius: '20px', // Slightly smaller border radius
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
