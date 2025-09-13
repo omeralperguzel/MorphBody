@@ -455,7 +455,7 @@ export const Scene2D: React.FC<Scene2DProps> = ({ measurements }) => {
         gender={measurements.gender}
         measurements={getModelMeasurements()}
         pose={{
-          // Use DEFAULT_POSE from Human2DModel - arms will point downward at 45°
+          // Use DEFAULT_POSE from Human2DModel - arms will hang naturally downward from shoulders
         }}
         showGrid={true}
         gridStepCm={5}

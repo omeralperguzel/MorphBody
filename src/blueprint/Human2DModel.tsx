@@ -128,8 +128,8 @@ const rotatePoint = (x: number, y: number, angleDeg: number): {x: number; y: num
 
 // Default pose parameters
 const DEFAULT_POSE: Required<Pose> = {
-  shoulderAbductionDeg: 45,
-  elbowFlexionDeg: 5,
+  shoulderAbductionDeg: 0,  // Arms hanging straight down
+  elbowFlexionDeg: 5,       // Slight bend for natural look
   wristFlexionDeg: 0,
   hipAbductionDeg: 5,
   kneeFlexionDeg: 2,
@@ -178,15 +178,66 @@ function armLandmarks(view: View, side: 'L' | 'R', m: Measurements, g: Gender, a
     y: elbowBase.y + flexionOffset.y
   };
   
-  // Intermediate landmarks along arm
+  // Intermediate landmarks along arm with proper muscle volume
   const bicepsMax = {
-    x: lerp(acromionBase.x, elbowBase.x, 0.4),
-    y: lerp(acromionBase.y, elbowBase.y, 0.4)
+    x: lerp(acromionBase.x, elbowBase.x, 0.35),
+    y: lerp(acromionBase.y, elbowBase.y, 0.35)
   };
   
   const forearmMax = {
     x: lerp(elbowBase.x, wristBase.x, 0.4),
     y: lerp(elbowBase.y, wristBase.y, 0.4)
+  };
+  
+  // Volume landmarks for proper arm shape
+  const shoulderLateral = {
+    x: acromionBase.x + sideSign * shoulderHW * 0.3,
+    y: acromionBase.y
+  };
+  
+  const shoulderMedial = {
+    x: acromionBase.x - sideSign * shoulderHW * 0.2,
+    y: acromionBase.y
+  };
+  
+  const bicepsLateral = {
+    x: bicepsMax.x + sideSign * bicepsHW,
+    y: bicepsMax.y
+  };
+  
+  const bicepsMedial = {
+    x: bicepsMax.x - sideSign * bicepsHW * 0.7,
+    y: bicepsMax.y
+  };
+  
+  const elbowLateral = {
+    x: elbowBase.x + sideSign * elbowHW,
+    y: elbowBase.y
+  };
+  
+  const elbowMedial = {
+    x: elbowBase.x - sideSign * elbowHW * 0.8,
+    y: elbowBase.y
+  };
+  
+  const forearmLateral = {
+    x: forearmMax.x + sideSign * forearmHW,
+    y: forearmMax.y
+  };
+  
+  const forearmMedial = {
+    x: forearmMax.x - sideSign * forearmHW * 0.75,
+    y: forearmMax.y
+  };
+  
+  const wristLateral = {
+    x: wristBase.x + sideSign * wristHW,
+    y: wristBase.y
+  };
+  
+  const wristMedial = {
+    x: wristBase.x - sideSign * wristHW * 0.8,
+    y: wristBase.y
   };
   
   // Hand landmarks
@@ -224,6 +275,17 @@ function armLandmarks(view: View, side: 'L' | 'R', m: Measurements, g: Gender, a
     [`palmTip${side}`]: palmTip,
     [`palm${side}`]: palm,
     [`fingerTip${side}`]: fingerTip,
+    // Volume landmarks for proper arm shape
+    [`shoulderLateral${side}`]: shoulderLateral,
+    [`shoulderMedial${side}`]: shoulderMedial,
+    [`bicepsLateral${side}`]: bicepsLateral,
+    [`bicepsMedial${side}`]: bicepsMedial,
+    [`elbowLateral${side}`]: elbowLateral,
+    [`elbowMedial${side}`]: elbowMedial,
+    [`forearmLateral${side}`]: forearmLateral,
+    [`forearmMedial${side}`]: forearmMedial,
+    [`wristLateral${side}`]: wristLateral,
+    [`wristMedial${side}`]: wristMedial,
     // generic aliases for debug/overlays
     [`biceps${side}`]: bicepsMax,
     [`forearm${side}`]: forearmMax,
@@ -284,10 +346,10 @@ function legLandmarks(view: View, side: 'L' | 'R', m: Measurements, g: Gender, a
     y: kneeBase.y + flexionOffset.y
   };
   
-  // Intermediate landmarks along leg
+  // Intermediate landmarks along leg with proper volume
   const thighMax = {
-    x: lerp(hipJointBase.x, kneeBase.x, 0.4),
-    y: lerp(hipJointBase.y, kneeBase.y, 0.4)
+    x: lerp(hipJointBase.x, kneeBase.x, 0.35),
+    y: lerp(hipJointBase.y, kneeBase.y, 0.35)
   };
   
   const calfMax = {
@@ -295,9 +357,52 @@ function legLandmarks(view: View, side: 'L' | 'R', m: Measurements, g: Gender, a
     y: lerp(kneeBase.y, ankleBase.y, 0.35)
   };
   
-  // Foot landmarks
-  const heel = { x: ankleBase.x, y: heelY };
-  const toeTip = { x: ankleBase.x + sideSign * m.toeLength * 0.3, y: A.toeY };
+  // Lateral and medial landmarks for volume
+  const thighLateral = {
+    x: thighMax.x + sideSign * thighHW,
+    y: thighMax.y
+  };
+  
+  const thighMedial = {
+    x: thighMax.x - sideSign * thighHW * 0.7,
+    y: thighMax.y
+  };
+  
+  const kneeLateral = {
+    x: kneeBase.x + sideSign * kneeHW,
+    y: kneeBase.y
+  };
+  
+  const kneeMedial = {
+    x: kneeBase.x - sideSign * kneeHW * 0.8,
+    y: kneeBase.y
+  };
+  
+  const calfLateral = {
+    x: calfMax.x + sideSign * calfHW,
+    y: calfMax.y
+  };
+  
+  const calfMedial = {
+    x: calfMax.x - sideSign * calfHW * 0.75,
+    y: calfMax.y
+  };
+  
+  const ankleLateral = {
+    x: ankleBase.x + sideSign * ankleHW,
+    y: ankleBase.y
+  };
+  
+  const ankleMedial = {
+    x: ankleBase.x - sideSign * ankleHW * 0.8,
+    y: ankleBase.y
+  };
+  
+  // Foot landmarks with proper structure
+  const heel = { x: ankleBase.x - sideSign * ankleHW * 0.3, y: heelY };
+  const arch = { x: ankleBase.x, y: heelY - m.height * 0.015 };
+  const toeTip = { x: ankleBase.x + sideSign * m.toeLength * 0.8, y: A.toeY };
+  const toeTop = { x: ankleBase.x + sideSign * m.toeLength * 0.6, y: A.toeY - m.height * 0.02 };
   
   return {
     [`hipJoint${side}`]: hipJointBase,
@@ -307,6 +412,18 @@ function legLandmarks(view: View, side: 'L' | 'R', m: Measurements, g: Gender, a
     [`ankle${side}`]: ankleBase,
     [`heel${side}`]: heel,
     [`toeTip${side}`]: toeTip,
+    // Volume landmarks for proper leg shape
+    [`thighLateral${side}`]: thighLateral,
+    [`thighMedial${side}`]: thighMedial,
+    [`kneeLateral${side}`]: kneeLateral,
+    [`kneeMedial${side}`]: kneeMedial,
+    [`calfLateral${side}`]: calfLateral,
+    [`calfMedial${side}`]: calfMedial,
+    [`ankleLateral${side}`]: ankleLateral,
+    [`ankleMedial${side}`]: ankleMedial,
+    // Foot structure landmarks
+    [`arch${side}`]: arch,
+    [`toeTop${side}`]: toeTop,
     // generic aliases
     [`hip${side}`]: hipJointBase,
     [`thigh${side}`]: thighMax,
@@ -492,54 +609,71 @@ function landmarksSide(m: Measurements, g: Gender): Landmarks {
   };
 }
 
-// Build parametric arm SVG path
+// Build parametric arm SVG path with proper volume
 function buildPathParametricArm(L: Landmarks, _view: View, side: 'L' | 'R'): string {
-  // Get landmarks
+  // Get main landmarks
   const acromion = L[`acromion${side}`];
-  const bicepsMax = L[`bicepsMax${side}`];
-  const elbow = L[`elbow${side}`];
-  const forearmMax = L[`forearmMax${side}`];
-  const wrist = L[`wrist${side}`];
   const palmTip = L[`palmTip${side}`];
   const fingerTip = L[`fingerTip${side}`];
   
-  // Build the arm outline path - use landmark positions directly
+  // Get volume landmarks
+  const shoulderLateral = L[`shoulderLateral${side}`];
+  const shoulderMedial = L[`shoulderMedial${side}`];
+  const bicepsLateral = L[`bicepsLateral${side}`];
+  const bicepsMedial = L[`bicepsMedial${side}`];
+  const elbowLateral = L[`elbowLateral${side}`];
+  const elbowMedial = L[`elbowMedial${side}`];
+  const forearmLateral = L[`forearmLateral${side}`];
+  const forearmMedial = L[`forearmMedial${side}`];
+  const wristLateral = L[`wristLateral${side}`];
+  const wristMedial = L[`wristMedial${side}`];
+  
+  // Build the arm outline path with proper volume - lateral (outer) side
   return `
     M ${acromion.x},${acromion.y}
-    Q ${bicepsMax.x},${bicepsMax.y} ${elbow.x},${elbow.y}
-    Q ${forearmMax.x},${forearmMax.y} ${wrist.x},${wrist.y}
+    C ${shoulderLateral.x},${shoulderLateral.y} ${bicepsLateral.x},${bicepsLateral.y} ${bicepsLateral.x},${bicepsLateral.y}
+    C ${bicepsLateral.x},${bicepsLateral.y} ${elbowLateral.x},${elbowLateral.y} ${elbowLateral.x},${elbowLateral.y}
+    C ${forearmLateral.x},${forearmLateral.y} ${forearmLateral.x},${forearmLateral.y} ${wristLateral.x},${wristLateral.y}
     L ${palmTip.x},${palmTip.y}
     L ${fingerTip.x},${fingerTip.y}
     L ${palmTip.x},${palmTip.y}
-    L ${wrist.x},${wrist.y}
-    Q ${forearmMax.x},${forearmMax.y} ${elbow.x},${elbow.y}
-    Q ${bicepsMax.x},${bicepsMax.y} ${acromion.x},${acromion.y}
+    L ${wristMedial.x},${wristMedial.y}
+    C ${forearmMedial.x},${forearmMedial.y} ${forearmMedial.x},${forearmMedial.y} ${elbowMedial.x},${elbowMedial.y}
+    C ${elbowMedial.x},${elbowMedial.y} ${bicepsMedial.x},${bicepsMedial.y} ${bicepsMedial.x},${bicepsMedial.y}
+    C ${bicepsMedial.x},${bicepsMedial.y} ${shoulderMedial.x},${shoulderMedial.y} ${acromion.x},${acromion.y}
     Z
   `;
 }
 
-// Build parametric leg SVG path
+// Build parametric leg SVG path with proper volume
 function buildPathParametricLeg(L: Landmarks, _view: View, side: 'L' | 'R'): string {
-  // Get landmarks
+  // Get main landmarks
   const hipJoint = L[`hipJoint${side}`];
-  const thighMax = L[`thighMax${side}`];
-  const knee = L[`knee${side}`];
-  const calfMax = L[`calfMax${side}`];
-  const ankle = L[`ankle${side}`];
   const heel = L[`heel${side}`];
   const toeTip = L[`toeTip${side}`];
+  const arch = L[`arch${side}`];
+  const toeTop = L[`toeTop${side}`];
   
-  // Build the leg outline path - use landmark positions directly
+  // Get volume landmarks
+  const thighLateral = L[`thighLateral${side}`];
+  const thighMedial = L[`thighMedial${side}`];
+  const kneeLateral = L[`kneeLateral${side}`];
+  const kneeMedial = L[`kneeMedial${side}`];
+  const calfLateral = L[`calfLateral${side}`];
+  const calfMedial = L[`calfMedial${side}`];
+  const ankleLateral = L[`ankleLateral${side}`];
+  const ankleMedial = L[`ankleMedial${side}`];
+  
+  // Build the leg outline path with proper volume - lateral (outer) side
   return `
     M ${hipJoint.x},${hipJoint.y}
-    Q ${thighMax.x},${thighMax.y} ${knee.x},${knee.y}
-    Q ${calfMax.x},${calfMax.y} ${ankle.x},${ankle.y}
+    C ${thighLateral.x},${thighLateral.y} ${thighLateral.x},${thighLateral.y} ${kneeLateral.x},${kneeLateral.y}
+    C ${calfLateral.x},${calfLateral.y} ${calfLateral.x},${calfLateral.y} ${ankleLateral.x},${ankleLateral.y}
     L ${heel.x},${heel.y}
-    L ${toeTip.x},${toeTip.y}
-    L ${heel.x},${heel.y}
-    L ${ankle.x},${ankle.y}
-    Q ${calfMax.x},${calfMax.y} ${knee.x},${knee.y}
-    Q ${thighMax.x},${thighMax.y} ${hipJoint.x},${hipJoint.y}
+    C ${arch.x},${arch.y} ${toeTop.x},${toeTop.y} ${toeTip.x},${toeTip.y}
+    C ${toeTop.x},${toeTop.y} ${arch.x},${arch.y} ${ankleMedial.x},${ankleMedial.y}
+    C ${calfMedial.x},${calfMedial.y} ${calfMedial.x},${calfMedial.y} ${kneeMedial.x},${kneeMedial.y}
+    C ${thighMedial.x},${thighMedial.y} ${thighMedial.x},${thighMedial.y} ${hipJoint.x},${hipJoint.y}
     Z
   `;
 }
