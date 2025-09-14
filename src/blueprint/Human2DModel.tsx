@@ -128,8 +128,8 @@ const rotatePoint = (x: number, y: number, angleDeg: number): {x: number; y: num
 
 // Default pose parameters
 const DEFAULT_POSE: Required<Pose> = {
-  shoulderAbductionDeg: 0,  // Arms hanging straight down
-  elbowFlexionDeg: 5,       // Slight bend for natural look
+  shoulderAbductionDeg: 30,  // Arms opened outwards at 30 degrees
+  elbowFlexionDeg: 5,        // Slight bend for natural look
   wristFlexionDeg: 0,
   hipAbductionDeg: 5,
   kneeFlexionDeg: 2,
@@ -164,8 +164,8 @@ function armLandmarks(view: View, side: 'L' | 'R', m: Measurements, g: Gender, a
   // Base positions
   const acromionBase = { x: sideSign * shoulderHW, y: A.shoulderY };
   
-  // Apply shoulder abduction
-  const abductionOffset = rotatePoint(0, upperArmLen, angles.shoulderAbductionDeg * sideSign);
+  // Apply shoulder abduction (reverse sideSign to fix left/right opening direction)
+  const abductionOffset = rotatePoint(0, upperArmLen, angles.shoulderAbductionDeg * -sideSign);
   const elbowBase = {
     x: acromionBase.x + abductionOffset.x,
     y: acromionBase.y + abductionOffset.y
@@ -240,7 +240,7 @@ function armLandmarks(view: View, side: 'L' | 'R', m: Measurements, g: Gender, a
     y: wristBase.y
   };
   
-  // Hand landmarks
+  // Enhanced hand landmarks with proper proportions
   const handDirection = { 
     x: wristBase.x - elbowBase.x, 
     y: wristBase.y - elbowBase.y 
@@ -251,19 +251,62 @@ function armLandmarks(view: View, side: 'L' | 'R', m: Measurements, g: Gender, a
     y: handDirection.y / handLength 
   };
   
-  const palmTip = {
-    x: wristBase.x + handUnit.x * m.palmLength,
-    y: wristBase.y + handUnit.y * m.palmLength
+  // Perpendicular vector for hand width
+  const handPerpUnit = {
+    x: -handUnit.y,
+    y: handUnit.x
   };
   
+  // Wrist to palm base (heel of hand)
+  const palmBase = {
+    x: wristBase.x + handUnit.x * (m.palmLength * 0.2),
+    y: wristBase.y + handUnit.y * (m.palmLength * 0.2)
+  };
+  
+  // Palm center
   const palm = {
     x: wristBase.x + handUnit.x * (m.palmLength * 0.6),
     y: wristBase.y + handUnit.y * (m.palmLength * 0.6)
   };
   
+  // Palm tip (base of fingers)
+  const palmTip = {
+    x: wristBase.x + handUnit.x * m.palmLength,
+    y: wristBase.y + handUnit.y * m.palmLength
+  };
+  
+  // Enhanced finger structure
+  const fingerBase = {
+    x: palmTip.x + handUnit.x * (m.middleFingerLength * 0.3),
+    y: palmTip.y + handUnit.y * (m.middleFingerLength * 0.3)
+  };
+  
+  const fingerMid = {
+    x: palmTip.x + handUnit.x * (m.middleFingerLength * 0.65),
+    y: palmTip.y + handUnit.y * (m.middleFingerLength * 0.65)
+  };
+  
   const fingerTip = {
     x: palmTip.x + handUnit.x * m.middleFingerLength,
     y: palmTip.y + handUnit.y * m.middleFingerLength
+  };
+  
+  // Hand width landmarks for volume
+  const palmWidth = wristHW * 1.3; // Hand is wider than wrist
+  const palmLateral = {
+    x: palm.x + handPerpUnit.x * palmWidth * sideSign,
+    y: palm.y + handPerpUnit.y * palmWidth * sideSign
+  };
+  
+  const palmMedial = {
+    x: palm.x - handPerpUnit.x * palmWidth * sideSign * 0.6,
+    y: palm.y - handPerpUnit.y * palmWidth * sideSign * 0.6
+  };
+  
+  // Thumb landmark (perpendicular to hand)
+  const thumb = {
+    x: palmBase.x + handPerpUnit.x * palmWidth * sideSign * 0.8,
+    y: palmBase.y + handPerpUnit.y * palmWidth * sideSign * 0.8
   };
   
   return {
@@ -272,9 +315,13 @@ function armLandmarks(view: View, side: 'L' | 'R', m: Measurements, g: Gender, a
     [`elbow${side}`]: elbowBase,
     [`forearmMax${side}`]: forearmMax,
     [`wrist${side}`]: wristBase,
-    [`palmTip${side}`]: palmTip,
+    [`palmBase${side}`]: palmBase,
     [`palm${side}`]: palm,
+    [`palmTip${side}`]: palmTip,
+    [`fingerBase${side}`]: fingerBase,
+    [`fingerMid${side}`]: fingerMid,
     [`fingerTip${side}`]: fingerTip,
+    [`thumb${side}`]: thumb,
     // Volume landmarks for proper arm shape
     [`shoulderLateral${side}`]: shoulderLateral,
     [`shoulderMedial${side}`]: shoulderMedial,
@@ -286,6 +333,9 @@ function armLandmarks(view: View, side: 'L' | 'R', m: Measurements, g: Gender, a
     [`forearmMedial${side}`]: forearmMedial,
     [`wristLateral${side}`]: wristLateral,
     [`wristMedial${side}`]: wristMedial,
+    // Hand volume landmarks
+    [`palmLateral${side}`]: palmLateral,
+    [`palmMedial${side}`]: palmMedial,
     // generic aliases for debug/overlays
     [`biceps${side}`]: bicepsMax,
     [`forearm${side}`]: forearmMax,
@@ -490,6 +540,12 @@ function landmarksFront(m: Measurements, g: Gender): Landmarks {
     hipR: { x: hips, y: A.hipY },
     crotch: { x: 0, y: A.crotchY },
     
+    // Hip transition landmarks for smoother curves
+    hipTransitionL: { x: -hips * 0.7, y: A.hipY + (A.crotchY - A.hipY) * 0.4 },
+    hipTransitionR: { x: hips * 0.7, y: A.hipY + (A.crotchY - A.hipY) * 0.4 },
+    crotchL: { x: -waist * 0.3, y: A.crotchY },
+    crotchR: { x: waist * 0.3, y: A.crotchY },
+    
     // Left arm landmarks
     bicepsL: { x: -shoulder - biceps * 0.3, y: A.shoulderY + upperArm * 0.3 },
     elbowL: { x: -shoulder - elbow * 0.5, y: A.shoulderY + upperArm },
@@ -613,8 +669,12 @@ function landmarksSide(m: Measurements, g: Gender): Landmarks {
 function buildPathParametricArm(L: Landmarks, _view: View, side: 'L' | 'R'): string {
   // Get main landmarks
   const acromion = L[`acromion${side}`];
+  const palmBase = L[`palmBase${side}`];
   const palmTip = L[`palmTip${side}`];
+  const fingerBase = L[`fingerBase${side}`];
+  const fingerMid = L[`fingerMid${side}`];
   const fingerTip = L[`fingerTip${side}`];
+  const thumb = L[`thumb${side}`];
   
   // Get volume landmarks
   const shoulderLateral = L[`shoulderLateral${side}`];
@@ -627,17 +687,25 @@ function buildPathParametricArm(L: Landmarks, _view: View, side: 'L' | 'R'): str
   const forearmMedial = L[`forearmMedial${side}`];
   const wristLateral = L[`wristLateral${side}`];
   const wristMedial = L[`wristMedial${side}`];
+  const palmLateral = L[`palmLateral${side}`];
+  const palmMedial = L[`palmMedial${side}`];
   
-  // Build the arm outline path with proper volume - lateral (outer) side
+  // Build the arm outline path with proper volume and hand structure
   return `
     M ${acromion.x},${acromion.y}
     C ${shoulderLateral.x},${shoulderLateral.y} ${bicepsLateral.x},${bicepsLateral.y} ${bicepsLateral.x},${bicepsLateral.y}
     C ${bicepsLateral.x},${bicepsLateral.y} ${elbowLateral.x},${elbowLateral.y} ${elbowLateral.x},${elbowLateral.y}
     C ${forearmLateral.x},${forearmLateral.y} ${forearmLateral.x},${forearmLateral.y} ${wristLateral.x},${wristLateral.y}
-    L ${palmTip.x},${palmTip.y}
+    C ${palmLateral.x},${palmLateral.y} ${palmLateral.x},${palmLateral.y} ${palmTip.x},${palmTip.y}
+    L ${fingerBase.x},${fingerBase.y}
+    L ${fingerMid.x},${fingerMid.y}
     L ${fingerTip.x},${fingerTip.y}
+    L ${fingerMid.x},${fingerMid.y}
+    L ${fingerBase.x},${fingerBase.y}
     L ${palmTip.x},${palmTip.y}
-    L ${wristMedial.x},${wristMedial.y}
+    L ${thumb.x},${thumb.y}
+    L ${palmBase.x},${palmBase.y}
+    C ${palmMedial.x},${palmMedial.y} ${palmMedial.x},${palmMedial.y} ${wristMedial.x},${wristMedial.y}
     C ${forearmMedial.x},${forearmMedial.y} ${forearmMedial.x},${forearmMedial.y} ${elbowMedial.x},${elbowMedial.y}
     C ${elbowMedial.x},${elbowMedial.y} ${bicepsMedial.x},${bicepsMedial.y} ${bicepsMedial.x},${bicepsMedial.y}
     C ${bicepsMedial.x},${bicepsMedial.y} ${shoulderMedial.x},${shoulderMedial.y} ${acromion.x},${acromion.y}
@@ -689,13 +757,12 @@ function buildPathPelvis(L: Landmarks, view: View): string {
       Z
     `;
   } else {
-    // Front/back view - pelvis connects hips to crotch
+    // Front/back view - simplified pelvis connection using new crotch landmarks
     return `
-      M ${L.hipL.x},${L.hipL.y}
-      Q ${L.hipL.x * 0.3},${L.hipL.y + (L.crotch.y - L.hipL.y) * 0.3} ${L.crotch.x},${L.crotch.y}
-      Q ${L.hipR.x * 0.3},${L.hipR.y + (L.crotch.y - L.hipR.y) * 0.3} ${L.hipR.x},${L.hipR.y}
-      L ${L.hipR.x},${L.hipR.y - 5}
-      L ${L.hipL.x},${L.hipL.y - 5}
+      M ${L.crotchL.x},${L.crotchL.y}
+      L ${L.crotchL.x * 0.5},${L.crotchL.y + 8}
+      L ${L.crotchR.x * 0.5},${L.crotchR.y + 8}
+      L ${L.crotchR.x},${L.crotchR.y}
       Z
     `;
   }
@@ -757,8 +824,9 @@ function buildPathFrontTorso(L: Landmarks): string {
     ${L.bustApexL ? `Q ${L.bustApexL.x},${L.bustApexL.y} ${L.chestL.x},${L.chestL.y + 5}` : ''}
     L ${L.waistL.x},${L.waistL.y}
     C ${L.hipL.x},${L.waistL.y} ${L.hipL.x},${L.hipL.y} ${L.hipL.x},${L.hipL.y}
-    L ${L.crotch.x},${L.crotch.y}
-    L ${L.hipR.x},${L.hipR.y}
+    Q ${L.hipTransitionL.x},${L.hipTransitionL.y} ${L.crotchL.x},${L.crotchL.y}
+    L ${L.crotchR.x},${L.crotchR.y}
+    Q ${L.hipTransitionR.x},${L.hipTransitionR.y} ${L.hipR.x},${L.hipR.y}
     C ${L.hipR.x},${L.waistR.y} ${L.waistR.x},${L.waistR.y} ${L.waistR.x},${L.waistR.y}
     ${L.bustApexR ? `Q ${L.bustApexR.x},${L.bustApexR.y} ${L.chestR.x},${L.chestR.y + 5}` : ''}
     L ${L.chestR.x},${L.chestR.y}
